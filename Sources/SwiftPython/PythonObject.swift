@@ -22,7 +22,8 @@ public struct PythonObject: @unchecked Sendable, ~Copyable {
     /// The raw CPython PyObject pointer.
     /// - Note: This is only a valid reference while this `PythonObject` stays alive. Use `withExtendedLifetime` to extend it until you are done using `pyObject`.
     @unsafe
-    public let pyObject: UnsafePyObjectRef
+    @usableFromInline
+    internal let pyObject: UnsafePyObjectRef
 
     /// Whether the reference count will be decremented on deinit.
     private let managed: Bool
@@ -137,8 +138,9 @@ extension PythonObject {
     /// Check if the `PythonObject` has an attribute by name.
     /// - Parameter attributeName: The name of the attribute to test for.
     /// - Returns: `True` if the attribute exists on this `PythonObject`.
+    @inlinable
     @_disfavoredOverload
-    public func hasAttribute(_ attributeName: String) -> Bool {
+    public func hasAttribute(_ attributeName: some StringProtocol) -> Bool {
         attributes.contains(attributeName)
     }
 
@@ -253,7 +255,7 @@ extension PythonObject {
 // Polymorphism
 extension PythonObject {
     public func isInstance(of other: borrowing PythonObject) throws(PythonError) -> Bool {
-        let ret: Int32 = PyObject_IsInstance(pyObject, other.pyObject)
+        let ret: CInt = PyObject_IsInstance(pyObject, other.pyObject)
         if ret == -1 {
             try PythonError.check()
         }
@@ -261,7 +263,7 @@ extension PythonObject {
     }
 
     public func isSubclass(of other: borrowing PythonObject) throws(PythonError) -> Bool {
-        let ret: Int32 = PyObject_IsSubclass(pyObject, other.pyObject)
+        let ret: CInt = PyObject_IsSubclass(pyObject, other.pyObject)
         if ret == -1 {
             try PythonError.check()
         }
@@ -269,65 +271,8 @@ extension PythonObject {
     }
 }
 
-// Operators
-extension PythonObject { // : Equatable { Waiting for [SE-0499]
-    public static func == (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> Bool {
-        let ret: Int32 = PyObject_RichCompareBool(lhs.pyObject, rhs.pyObject, Py_EQ)
-        guard ret >= 0, PythonError.checkTracked() else {
-            return false
-        }
-        return ret == 1
-    }
-    public static func != (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> Bool {
-        let ret: Int32 = PyObject_RichCompareBool(lhs.pyObject, rhs.pyObject, Py_NE)
-        guard ret >= 0, PythonError.checkTracked() else {
-            return false
-        }
-        return ret == 1
-    }
-    public static func > (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> Bool {
-        let ret: Int32 = PyObject_RichCompareBool(lhs.pyObject, rhs.pyObject, Py_GT)
-        guard ret >= 0, PythonError.checkTracked() else {
-            return false
-        }
-        return ret == 1
-    }
-    public static func >= (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> Bool {
-        let ret: Int32 = PyObject_RichCompareBool(lhs.pyObject, rhs.pyObject, Py_GE)
-        guard ret >= 0, PythonError.checkTracked() else {
-            return false
-        }
-        return ret == 1
-    }
-    public static func < (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> Bool {
-        let ret: Int32 = PyObject_RichCompareBool(lhs.pyObject, rhs.pyObject, Py_LT)
-        guard ret >= 0, PythonError.checkTracked() else {
-            return false
-        }
-        return ret == 1
-    }
-    public static func <= (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> Bool {
-        let ret: Int32 = PyObject_RichCompareBool(lhs.pyObject, rhs.pyObject, Py_LE)
-        guard ret >= 0, PythonError.checkTracked() else {
-            return false
-        }
-        return ret == 1
-    }
-}
-
 // Other standard attributes
 extension PythonObject {
-    public var length: Py_ssize_t {
-        get throws(PythonError) {
-            let ret: Py_ssize_t = PyObject_Length(pyObject)
-            guard ret >= 0 else {
-                try PythonError.check()
-                throw PythonError.unknown
-            }
-            return ret
-        }
-    }
-
     public func dir() throws(PythonError) -> PythonObject {
         let ref: UnsafePyObjectRef? = PyObject_Dir(pyObject)
         guard let ref else {
@@ -344,17 +289,5 @@ extension PythonObject {
             throw PythonError.unknown
         }
         return hash
-    }
-}
-
-// Conversions
-extension Bool {
-    public init(_ pythonObject: borrowing PythonObject) {
-        self = PyObject_IsTrue(pythonObject.pyObject) == 1
-    }
-}
-extension String {
-    public init(_ pythonObject: borrowing PythonObject) throws(PythonError) {
-        self = try pythonObject.str()
     }
 }

@@ -13,7 +13,9 @@ extension PythonObject {
     @safe
     public struct Attributes: ~Copyable, ~Escapable {
         /// The PyObject reference for the linked `PythonObject`.
-        private let pyObject: UnsafePyObjectRef
+        @unsafe
+        @usableFromInline
+        internal let pyObject: UnsafePyObjectRef
 
         /// Make a new `Attributes` struct accessing the provided `PythonObject`.
         /// The lifetime of the instance exclusivly borrows `object`.
@@ -33,8 +35,9 @@ extension PythonObject {
         /// Check if the `PythonObject` has an attribute by name.
         /// - Parameter attributeName: The name of the attribute to test for.
         /// - Returns: `True` if the attribute exists on this `PythonObject`.
+        @inlinable
         @_disfavoredOverload
-        public func contains(_ attributeName: String) -> Bool {
+        public func contains(_ attributeName: some StringProtocol) -> Bool {
             let ret: CInt = unsafe attributeName.withCString { attributeNameStr in
                 unsafe PyObject_HasAttrString(pyObject, attributeNameStr)
             }
@@ -47,7 +50,7 @@ extension PythonObject {
         public subscript(_ attributeName: StaticString) -> PythonObject? {
             get {
                 var attributeObjectRef: UnsafePyObjectRef? = nil
-                let ret: Int32 = unsafe PyObject_GetOptionalAttrString(pyObject, attributeName._cStringStart, &attributeObjectRef)
+                let ret: CInt = unsafe PyObject_GetOptionalAttrString(pyObject, attributeName._cStringStart, &attributeObjectRef)
                 guard ret == 0 else {
                     return nil
                 }
@@ -58,11 +61,12 @@ extension PythonObject {
         /// Get the `PythonObject` for the specified attribute.
         /// - Parameter attributeName: The name of the attribute to get.
         /// - Returns: A `PythonObject` is the attribute was found. `nil` otherwise.
+        @inlinable
         @_disfavoredOverload
-        public subscript(_ attributeName: String) -> PythonObject? {
+        public subscript(_ attributeName: some StringProtocol) -> PythonObject? {
             get {
                 var attributeObjectRef: UnsafePyObjectRef? = nil
-                let ret: Int32 = unsafe attributeName.withCString { attributeNameStr in
+                let ret: CInt = unsafe attributeName.withCString { attributeNameStr in
                     unsafe PyObject_GetOptionalAttrString(pyObject, attributeNameStr, &attributeObjectRef)
                 }
                 guard ret == 0 else {
@@ -89,8 +93,9 @@ extension PythonObject {
         /// Get the `PythonObject` for the specified attribute and report an error if not found.
         /// - Parameter attributeName: The name of the attribute to get.
         /// - Returns: A `PythonObject` for that attribute.
+        @inlinable
         @_disfavoredOverload
-        public subscript(required attributeName: String) -> PythonObject {
+        public subscript(required attributeName: some StringProtocol) -> PythonObject {
             get {
                 let attributeObjectRef: UnsafePyObjectRef? = unsafe attributeName.withCString { attributeNameStr in
                     unsafe PyObject_GetAttrString(pyObject, attributeNameStr)
