@@ -78,10 +78,9 @@ extension PythonObject {
         /// - Returns: A `PythonObject` for that attribute.
         public subscript(required attributeName: StaticString) -> PythonObject {
             get {
-                // ToDo: Add Error Tracking
                 let attributeObjectRef: UnsafePyObjectRef? = unsafe PyObject_GetAttrString(pyObject, attributeName._cStringStart)
-                guard let attributeObjectRef else {
-                    fatalError("ToDo: Add Error Tracking")
+                guard let attributeObjectRef, PythonError.checkTracked() else {
+                    return PythonObject.none
                 }
                 // The object ref is a new strong reference, so it is already retained.
                 return PythonObject(unsafeUnretained: attributeObjectRef)
@@ -94,11 +93,10 @@ extension PythonObject {
         public subscript(required attributeName: String) -> PythonObject {
             get {
                 let attributeObjectRef: UnsafePyObjectRef? = unsafe attributeName.withCString { attributeNameStr in
-                    // ToDo: Add Error Tracking
                     unsafe PyObject_GetAttrString(pyObject, attributeNameStr)
                 }
-                guard let attributeObjectRef else {
-                    fatalError("ToDo: Add Error Tracking")
+                guard let attributeObjectRef, PythonError.checkTracked() else {
+                    return PythonObject.none
                 }
                 // The object ref is a new strong reference, so it is already retained.
                 return PythonObject(unsafeUnretained: attributeObjectRef)

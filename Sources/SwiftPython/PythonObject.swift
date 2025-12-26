@@ -180,6 +180,8 @@ extension PythonObject {
     /// This is a temporary solution. Once ~Copyable arrays can be ExpressibleByArrayLiteral, this will be replaced with @dynamicallyCallable.
     public func callAsFunction() throws(PythonError) -> PythonObject? {
         let objectRef: UnsafePyObjectRef? = PyObject_CallNoArgs(pyObject)
+        // Replace with error tracking when moved to dynamic callable
+        try PythonError.check()
         return PythonObject(unsafeUnretained: objectRef)
     }
 
@@ -203,7 +205,7 @@ extension PythonObject {//: CustomStringConvertible, CustomDebugStringConvertibl
         let cString: UnsafePointer<CChar>? = PyUnicode_AsUTF8AndSize(strObjectRef, nil)
         guard let cString else {
             try PythonError.check()
-            throw PythonError.getUnknownError()
+            throw PythonError.unknown
         }
         return String(cString: cString)
     }
@@ -214,7 +216,7 @@ extension PythonObject {//: CustomStringConvertible, CustomDebugStringConvertibl
         let cString: UnsafePointer<CChar>? = PyUnicode_AsUTF8AndSize(strObjectRef, nil)
         guard let cString else {
             try PythonError.check()
-            throw PythonError.getUnknownError()
+            throw PythonError.unknown
         }
         return String(cString: cString)
     }
@@ -243,7 +245,7 @@ extension PythonObject {
         unsafe pyObject == Py_GetConstantBorrowed(0) // None constant
     }
     /// Get python `None`.
-    public var none: PythonObject {
+    public static var none: PythonObject {
         unsafe PythonObject(unsafeUnmanaged: Py_GetConstantBorrowed(0)) // None constant
     }
 }
@@ -271,32 +273,44 @@ extension PythonObject {
 extension PythonObject { // : Equatable { Waiting for [SE-0499]
     public static func == (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> Bool {
         let ret: Int32 = PyObject_RichCompareBool(lhs.pyObject, rhs.pyObject, Py_EQ)
-        // ToDo: Error checking
+        guard ret >= 0, PythonError.checkTracked() else {
+            return false
+        }
         return ret == 1
     }
     public static func != (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> Bool {
         let ret: Int32 = PyObject_RichCompareBool(lhs.pyObject, rhs.pyObject, Py_NE)
-        // ToDo: Error checking
+        guard ret >= 0, PythonError.checkTracked() else {
+            return false
+        }
         return ret == 1
     }
     public static func > (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> Bool {
         let ret: Int32 = PyObject_RichCompareBool(lhs.pyObject, rhs.pyObject, Py_GT)
-        // ToDo: Error checking
+        guard ret >= 0, PythonError.checkTracked() else {
+            return false
+        }
         return ret == 1
     }
     public static func >= (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> Bool {
         let ret: Int32 = PyObject_RichCompareBool(lhs.pyObject, rhs.pyObject, Py_GE)
-        // ToDo: Error checking
+        guard ret >= 0, PythonError.checkTracked() else {
+            return false
+        }
         return ret == 1
     }
     public static func < (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> Bool {
         let ret: Int32 = PyObject_RichCompareBool(lhs.pyObject, rhs.pyObject, Py_LT)
-        // ToDo: Error checking
+        guard ret >= 0, PythonError.checkTracked() else {
+            return false
+        }
         return ret == 1
     }
     public static func <= (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> Bool {
         let ret: Int32 = PyObject_RichCompareBool(lhs.pyObject, rhs.pyObject, Py_LE)
-        // ToDo: Error checking
+        guard ret >= 0, PythonError.checkTracked() else {
+            return false
+        }
         return ret == 1
     }
 }
@@ -308,7 +322,7 @@ extension PythonObject {
             let ret: Py_ssize_t = PyObject_Length(pyObject)
             guard ret >= 0 else {
                 try PythonError.check()
-                throw PythonError.getUnknownError()
+                throw PythonError.unknown
             }
             return ret
         }
@@ -318,7 +332,7 @@ extension PythonObject {
         let ref: UnsafePyObjectRef? = PyObject_Dir(pyObject)
         guard let ref else {
             try PythonError.check()
-            throw PythonError.getUnknownError()
+            throw PythonError.unknown
         }
         return PythonObject(unsafeUnretained: ref)
     }
@@ -327,7 +341,7 @@ extension PythonObject {
         let hash: Py_hash_t = PyObject_Hash(pyObject)
         guard hash != -1 else {
             try PythonError.check()
-            throw PythonError.getUnknownError()
+            throw PythonError.unknown
         }
         return hash
     }

@@ -13,16 +13,41 @@ public import CPython
 /// - Parameters:
 ///   - name: The name of the function being recursively called or the general task being performed.
 ///   - body: The block of code to execute after incrementing the recursion depth counter.
-/// - Throws: Any error thrown from `body`.
+/// - Throws: PythonError` when the limit is reached.
 /// - Returns: Any value returned from `body`.
 @inlinable
-public func withPythonRecursionTracking<T: ~Copyable, E: Error>(
+public func withPythonRecursionTracking<T: ~Copyable>(
     name: StaticString,
-    body: () throws(E) -> T
+    body: () -> T
+) throws(PythonError) -> T {
+    let ret = Py_EnterRecursiveCall(name._cStringStart)
+    guard ret == 0 else {
+        try PythonError.check()
+        throw PythonError.unknown
+    }
+    defer {
+        Py_LeaveRecursiveCall()
+    }
+    return body()
+}
+
+/// Track recursion depth using CPython and throw a python RecursionError when the limit is reached.
+/// Wrap this around the recursive call to track the depth.
+/// - Parameters:
+///   - name: The name of the function being recursively called or the general task being performed.
+///   - body: The block of code to execute after incrementing the recursion depth counter.
+/// - Throws: Any error thrown from `body` or a `PythonError` when the limit is reached.
+/// - Returns: Any value returned from `body`.
+@inlinable
+@_disfavoredOverload
+public func withPythonRecursionTracking<T: ~Copyable>(
+    name: StaticString,
+    body: () throws -> T
 ) throws -> T {
     let ret = Py_EnterRecursiveCall(name._cStringStart)
     guard ret == 0 else {
-        fatalError("ToDo: Properly exit when the recursion limit is hit")
+        try PythonError.check()
+        throw PythonError.unknown
     }
     defer {
         Py_LeaveRecursiveCall()
