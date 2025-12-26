@@ -69,6 +69,7 @@ extension PythonError {
     @TaskLocal
     public static var trackingState: TrackingState? = nil
 
+    @discardableResult
     public static func checkTracked() -> Bool {
         do throws(PythonError) {
             try check()
@@ -93,6 +94,9 @@ extension PythonError {
             do throws(PythonError) {
                 returnValue = try body()
             } catch let e {
+                error = e
+            }
+            if let e = trackingState!.error {
                 error = e
             }
         }
