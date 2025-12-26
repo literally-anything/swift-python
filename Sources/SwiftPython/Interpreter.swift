@@ -63,7 +63,7 @@ public struct PythonInterpreter: SendableMetatype {
         let moduleRef: UnsafePyObjectRef? = unsafe PyImport_ImportModule(name)
         guard let moduleRef else {
             try PythonError.check()
-            throw PythonError.getUnknownError()
+            throw PythonError.unknown
         }
         return unsafe PythonObject(unsafeUnretained: moduleRef)
     }
