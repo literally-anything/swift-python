@@ -78,7 +78,7 @@ extension PythonError {
             if trackingState != nil {
                 trackingState!.error = error
             } else {
-                fatalError("Python error not caught in Swift code: \(error)")
+                fatalError("Python error not caught in Swift code: \(error.debugDescription) ; This should be wrapped in `PythonError.withErrorTracking {}`")
             }
             return false
         }

@@ -13,6 +13,7 @@ public struct PythonInterpreter: SendableMetatype {
     /// Stores whether the interpreter is initialized yet.
     internal static let isInitialized: Mutex<Bool> = Mutex(false)
     /// Ensures that the interpreter has been initialized.
+    @usableFromInline
     internal static func ensureInitialized() {
         isInitialized.withLock { isInitialized in
             if isInitialized {
@@ -24,43 +25,43 @@ public struct PythonInterpreter: SendableMetatype {
                 return
             }
 
-            Py_Initialize()
+            var config: PyConfig = PyConfig()
+            PyConfig_InitIsolatedConfig(&config)
+            defer { PyConfig_Clear(&config) }
+
+            Py_InitializeFromConfig(&config)
             isInitialized = true
-
-            // Fixes from https://github.com/pvieito/PythonKit/blob/master/PythonKit/Python.swift#L682
-            PyRun_SimpleString("""
-                import sys
-                import os
-
-                # Some Python modules expect to have at least one argument in `sys.argv`:
-                sys.argv = [""]
-
-                # Some Python modules require `sys.executable` to return the path
-                # to the Python interpreter executable. In Darwin, Python 3 returns the
-                # main process executable path instead:
-                if sys.version_info.major == 3 and sys.platform == "darwin":
-                    executable_name = "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
-                    sys.executable = os.path.join(sys.exec_prefix, "bin", executable_name)
-            """)
         }
     }
 
     /// The mutable interpreter builtins.
-    public static var builtins: PythonObject {
-        unsafe PythonObject(unsafeUnretained: PyEval_GetFrameBuiltins())
+    public static var builtins: PythonObject? {
+        ensureInitialized()
+        let builtinsRef: UnsafePyObjectRef? = PyEval_GetFrameBuiltins()
+        try? PythonError.check() // ToDo: Replace with a throwing getter when those work with noncopyable types.
+        return PythonObject(unsafeUnretained: builtinsRef)
     }
     /// The mutable interpreter globals.
-    public static var globals: PythonObject {
-        unsafe PythonObject(unsafeUnretained: PyEval_GetFrameGlobals())
+    public static var globals: PythonObject? {
+        ensureInitialized()
+        let globalsRef: UnsafePyObjectRef? = PyEval_GetFrameGlobals()
+        try? PythonError.check() // ToDo: Replace with a throwing getter when those work with noncopyable types.
+        return PythonObject(unsafeUnretained: globalsRef)
     }
     /// The mutable interpreter locals.
-    public static var locals: PythonObject {
-        unsafe PythonObject(unsafeUnretained: PyEval_GetFrameLocals())
+    public static var locals: PythonObject? {
+        ensureInitialized()
+        let localsRef: UnsafePyObjectRef? = PyEval_GetFrameLocals()
+        try? PythonError.check() // ToDo: Replace with a throwing getter when those work with noncopyable types.
+        return PythonObject(unsafeUnretained: localsRef)
     }
 
     /// Imports the specified python module and returns its module object.
     public static func `import`(name: String) throws(PythonError) -> PythonObject {
-        let moduleRef: UnsafePyObjectRef? = unsafe PyImport_ImportModule(name)
+        ensureInitialized()
+        let moduleRef: UnsafePyObjectRef? = withGIL {
+            unsafe PyImport_ImportModule(name)
+        }
         guard let moduleRef else {
             try PythonError.check()
             throw PythonError.unknown
@@ -69,7 +70,7 @@ public struct PythonInterpreter: SendableMetatype {
     }
 
     /// The mode to use when running a python string.
-    public enum RunMode {
+    internal enum RunMode {
         /// Run as a single expression.
         case expression
         /// Run as a full file.
@@ -77,7 +78,8 @@ public struct PythonInterpreter: SendableMetatype {
     }
 
     @discardableResult
-    public static func run(_ code: String, mode: RunMode) throws(PythonError) -> PythonObject? {
+    internal static func run(_ code: String, mode: RunMode) throws(PythonError) -> PythonObject? {
+        ensureInitialized()
         var flags: PyCompilerFlags = PyCompilerFlags(cf_flags: PyCF_ALLOW_TOP_LEVEL_AWAIT | PyCF_TYPE_COMMENTS, cf_feature_version: 0)
         let start: CInt =
             switch mode {
@@ -86,19 +88,34 @@ public struct PythonInterpreter: SendableMetatype {
                 case .file:
                     Py_file_input
             }
-        let globalsRef: UnsafePyObjectRef = globals.take()
-        let localsRef: UnsafePyObjectRef = locals.take()
+        let globalsRef: UnsafePyObjectRef? = globals?.take()
+        let localsRef: UnsafePyObjectRef? = locals?.take()
         defer {
-            PythonObject.release(globalsRef)
-            PythonObject.release(localsRef)
+            if let globalsRef {
+                PythonObject.release(globalsRef)
+            }
+            if let localsRef {
+                PythonObject.release(localsRef)
+            }
         }
         let returnRef: UnsafePyObjectRef? = withUnsafeMutablePointer(to: &flags) { flagsPtr in
-            PyRun_StringFlags(code, start, globalsRef, localsRef, flagsPtr)
+            // Use the main module dictionary as the globals and locals only if we couldn't find a frame.
+            var mainDict: UnsafePyObjectRef? = nil
+            if globalsRef == nil || localsRef == nil {
+                mainDict = PyModule_GetDict(PyImport_AddModule("__main__"))
+            }
+            return PyRun_StringFlags(code, start, globalsRef ?? mainDict, localsRef ?? mainDict, flagsPtr)
         }
-        if returnRef == nil {
+        guard let returnRef else {
             try PythonError.check()
+            throw PythonError.unknown
         }
-        return PythonObject(unsafeUnretained: returnRef)
+        let returnValue = PythonObject(unsafeUnretained: returnRef)
+        if returnValue.isNone {
+            return nil
+        } else {
+            return returnValue
+        }
     }
 
     public static func run(_ code: String) throws(PythonError) {
@@ -107,5 +124,62 @@ public struct PythonInterpreter: SendableMetatype {
 
     public static func run(expression: String) throws(PythonError) -> PythonObject? {
         try run(expression, mode: .expression)
+    }
+
+    @inlinable
+    public static func withGIL<T: ~Copyable, E: Error>(
+        _ body: () throws(E) -> T
+    ) throws(E) -> T {
+        return try withThreadState(body)
+    }
+
+    @inlinable
+    public static func withGILUnlocked<T: ~Copyable, E: Error>(
+        _ body: () throws(E) -> T
+    ) throws(E) -> T {
+        return try withThreadStateCleared(body)
+    }
+
+    @inlinable
+    public static func withThreadState<T: ~Copyable, E: Error>(
+        _ body: () throws(E) -> T
+    ) throws(E) -> T {
+        ensureInitialized()
+
+        let alreadyLocked = PyThreadState_GetUnchecked() != nil
+        var threadState: UnsafeMutablePointer<PyThreadState>? = nil
+        if !alreadyLocked {
+            let interpreterState = PyInterpreterState_Get()
+            threadState = PyThreadState_New(interpreterState)
+            PyThreadState_Swap(threadState)
+        }
+        defer {
+            if !alreadyLocked {
+                PyThreadState_Clear(threadState)
+                PyThreadState_DeleteCurrent()
+            }
+        }
+
+        return try body()
+    }
+
+    @inlinable
+    public static func withThreadStateCleared<T: ~Copyable, E: Error>(
+        _ body: () throws(E) -> T
+    ) throws(E) -> T {
+        ensureInitialized()
+
+        let isLocked = PyThreadState_GetUnchecked() != nil
+        var threadState: UnsafeMutablePointer<PyThreadState>? = nil
+        if isLocked {
+            threadState = PyEval_SaveThread()
+        }
+        defer {
+            if isLocked {
+                PyEval_RestoreThread(threadState)
+            }
+        }
+
+        return try body()
     }
 }
