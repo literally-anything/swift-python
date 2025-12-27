@@ -9,8 +9,13 @@
 import CPython
 
 extension Bool {
-    public init(_ pythonObject: borrowing PythonObject) {
-        self = PyObject_IsTrue(pythonObject.pyObject) == 1
+    public init(_ pythonObject: borrowing PythonObject) throws(PythonError) {
+        let ret: CInt = PyObject_IsTrue(pythonObject.pyObject)
+        guard ret >= 0 else {
+            try PythonError.check()
+            throw PythonError.unknown
+        }
+        self = ret == 1
     }
 }
 
@@ -27,7 +32,7 @@ extension FixedWidthInteger {
             try PythonError.check()
             throw PythonError.unknown
         }
-        let number: Int = PyNumber_AsSsize_t(numberRef, nil)
+        let number: Py_ssize_t = PyNumber_AsSsize_t(numberRef, nil)
         self = .init(number)
     }
 }
