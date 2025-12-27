@@ -11,7 +11,7 @@ import CPython
 extension PythonObject {
     /// A wrapper around the attributes of a `PythonObject`.
     @safe
-    public struct Attributes: ~Copyable, ~Escapable {
+    public struct Attributes: ~Escapable {
         /// The PyObject reference for the linked `PythonObject`.
         @unsafe
         @usableFromInline
