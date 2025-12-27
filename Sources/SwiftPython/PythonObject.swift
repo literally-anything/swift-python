@@ -184,12 +184,14 @@ extension PythonObject {
     /// Call this python object like a function.
     /// This is a temporary solution. Once ~Copyable arrays can be ExpressibleByArrayLiteral, this will be replaced with @dynamicallyCallable.
     /// - Parameter args: The list of key value pairs for parameters.
+    @discardableResult
     public func callAsFunction(_ args: borrowing RigidArray<TempKeyValuePair>) throws(PythonError) -> PythonObject? {
         fatalError("Not Implemented")
     }
     /// Call this python object like a function.
     /// This is a temporary solution. Once ~Copyable arrays can be ExpressibleByArrayLiteral, this will be replaced with @dynamicallyCallable.
     /// - Parameter args: The tuple of `PythonConvertible` arguments to pass.
+    @discardableResult
     public func callAsFunction<each O>(_ args: repeat each O) throws(PythonError) -> PythonObject? where repeat each O: PythonConvertible {
         fatalError("Not Implemented")
     }
@@ -198,6 +200,7 @@ extension PythonObject {
     /// This is a temporary solution. Once ~Copyable arrays can be ExpressibleByArrayLiteral, this will be replaced with @dynamicallyCallable.
     /// - Parameter argument: The single object argument.
     @inlinable
+    @discardableResult
     public func callAsFunction(_ argument: borrowing some PythonConvertible) throws(PythonError) -> PythonObject? {
         return try self.callAsFunction(argument._toPythonObject())
     }
@@ -205,8 +208,9 @@ extension PythonObject {
     /// This is a temporary solution. Once ~Copyable arrays can be ExpressibleByArrayLiteral, this will be replaced with @dynamicallyCallable.
     /// - Parameter argument: The single object argument.
     @inlinable
+    @discardableResult
     public func callAsFunction(_ argument: borrowing PythonObject) throws(PythonError) -> PythonObject? {
-        let objectRef: UnsafePyObjectRef? = PyObject_CallObject(pyObject, argument.pyObject)
+        let objectRef: UnsafePyObjectRef? = PyObject_CallOneArg(pyObject, argument.pyObject)
         // Replace with error tracking when moved to dynamic callable
         try PythonError.check()
         let object: PythonObject? = PythonObject(unsafeUnretained: objectRef)
@@ -220,6 +224,7 @@ extension PythonObject {
 
     /// Call this python object like a function.
     /// This is a temporary solution. Once ~Copyable arrays can be ExpressibleByArrayLiteral, this will be replaced with @dynamicallyCallable.
+    @discardableResult
     public func callAsFunction() throws(PythonError) -> PythonObject? {
         let objectRef: UnsafePyObjectRef? = PyObject_CallNoArgs(pyObject)
         // Replace with error tracking when moved to dynamic callable
