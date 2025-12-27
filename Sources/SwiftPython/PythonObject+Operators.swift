@@ -231,6 +231,23 @@ extension PythonObject {
         }
     }
 
+    public func asList() throws(PythonError) -> PythonObject {
+        let ref: UnsafePyObjectRef? = PySequence_List(pyObject)
+        guard let ref else {
+            try PythonError.check()
+            throw PythonError.unknown
+        }
+        return PythonObject(unsafeUnretained: ref)
+    }
+    public func asTuple() throws(PythonError) -> PythonObject {
+        let ref: UnsafePyObjectRef? = PySequence_Tuple(pyObject)
+        guard let ref else {
+            try PythonError.check()
+            throw PythonError.unknown
+        }
+        return PythonObject(unsafeUnretained: ref)
+    }
+
     public func contains(_ item: borrowing PythonObject) throws(PythonError) -> Bool {
         let ret: CInt = PySequence_Contains(pyObject, item.pyObject)
         guard ret >= 0 else {
@@ -295,21 +312,57 @@ extension PythonObject {
     //         }
     //     }
     // }
-
-    // ToDo: Add support for PySequence_Fast functions
 }
 
 // Mapping
 extension PythonObject {
+    public func hasValue(for key: String) -> Bool {
+        hasValue(key: key)
+    }
     public func hasValue(for key: some StringProtocol) -> Bool {
+        hasValue(key: key)
+    }
+    private func hasValue(key: some StringProtocol) -> Bool {
         let ret: CInt = key.withCString { keyCString in
             PyMapping_HasKeyString(pyObject, keyCString)
         }
         return ret == 1
     }
 
+    public func keys() throws(PythonError) -> PythonObject {
+        let ref: UnsafePyObjectRef? = PyMapping_Keys(pyObject)
+        guard let ref else {
+            try PythonError.check()
+            throw PythonError.unknown
+        }
+        return PythonObject(unsafeUnretained: ref)
+    }
+    public func values() throws(PythonError) -> PythonObject {
+        let ref: UnsafePyObjectRef? = PyMapping_Values(pyObject)
+        guard let ref else {
+            try PythonError.check()
+            throw PythonError.unknown
+        }
+        return PythonObject(unsafeUnretained: ref)
+    }
+    public func items() throws(PythonError) -> PythonObject {
+        let ref: UnsafePyObjectRef? = PyMapping_Items(pyObject)
+        guard let ref else {
+            try PythonError.check()
+            throw PythonError.unknown
+        }
+        return PythonObject(unsafeUnretained: ref)
+    }
+
+    public subscript(_ key: String) -> PythonObject? {
+        self[key: key]
+    }
     @inlinable
-    subscript(_ key: some StringProtocol) -> PythonObject? {
+    public subscript(_ key: some StringProtocol) -> PythonObject? {
+        self[key: key]
+    }
+    @inlinable
+    internal subscript(key key: some StringProtocol) -> PythonObject? {
         get {
             var resultRef: UnsafePyObjectRef? = nil
             let ret: CInt = key.withCString { keyCString in

@@ -35,7 +35,7 @@ public struct PythonInterpreter: SendableMetatype {
     }
 
     /// The mutable interpreter builtins.
-    public static var builtins: PythonObject? {
+    public static var builtins: PythonObject! {
         ensureInitialized()
         let builtinsRef: UnsafePyObjectRef? = PyEval_GetFrameBuiltins()
         try? PythonError.check() // ToDo: Replace with a throwing getter when those work with noncopyable types.
