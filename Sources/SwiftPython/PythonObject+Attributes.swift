@@ -57,6 +57,17 @@ extension PythonObject {
                 // The object ref is a new strong reference, so it is already retained.
                 return PythonObject(unsafeUnretained: attributeObjectRef)
             }
+            nonmutating set(newValue) {
+                let ret: CInt
+                if let newValue {
+                    ret = PyObject_SetAttrString(pyObject, attributeName._cStringStart, newValue.pyObject)
+                } else {
+                    ret = PyObject_DelAttrString(pyObject, attributeName._cStringStart)
+                }
+                if ret != 0 {
+                    PythonError.checkTracked()
+                }
+            }
         }
         /// Get the `PythonObject` for the specified attribute.
         /// - Parameter attributeName: The name of the attribute to get.
@@ -74,6 +85,21 @@ extension PythonObject {
                 }
                 // The object ref is a new strong reference, so it is already retained.
                 return PythonObject(unsafeUnretained: attributeObjectRef)
+            }
+            nonmutating set(newValue) {
+                let ret: CInt
+                if let newValue {
+                    ret = attributeName.withCString { attributeNameStr in
+                        PyObject_SetAttrString(pyObject, attributeNameStr, newValue.pyObject)
+                    }
+                } else {
+                    ret = attributeName.withCString { attributeNameStr in
+                        PyObject_DelAttrString(pyObject, attributeNameStr)
+                    }
+                }
+                if ret != 0 {
+                    PythonError.checkTracked()
+                }
             }
         }
 

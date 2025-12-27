@@ -147,13 +147,23 @@ extension PythonObject {
     /// Dynamically lookup an attribute on the underlying python object.
     /// This is used for @dynamicMemberLookup.
     public subscript(dynamicMember member: StaticString) -> PythonObject {
-        attributes[required: member]
+        get {
+            attributes[required: member]
+        }
+        nonmutating set(newValue) {
+            attributes[member] = consume newValue
+        }
     }
     /// Dynamically lookup an attribute on the underlying python object.
     /// This is used for @dynamicMemberLookup.
     @_disfavoredOverload
     public subscript(dynamicMember member: String) -> PythonObject {
-        attributes[required: member]
+        get {
+            attributes[required: member]
+        }
+        nonmutating set(newValue) {
+            attributes[member] = consume newValue
+        }
     }
 }
 
