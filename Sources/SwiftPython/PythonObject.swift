@@ -121,52 +121,6 @@ extension PythonObject {
     }
 }
 
-// Attributes
-extension PythonObject {
-    /// Access the attributes of the `PythonObject`.
-    /// This returns a lifetime-dependent value used to temporarily access the attributes.
-    public var attributes: Attributes {
-        Attributes(self)
-    }
-
-    /// Check if the `PythonObject` has an attribute by name.
-    /// - Parameter attributeName: The name of the attribute to test for.
-    /// - Returns: `True` if the attribute exists on this `PythonObject`.
-    public func hasAttribute(_ attributeName: StaticString) -> Bool {
-        attributes.contains(attributeName)
-    }
-    /// Check if the `PythonObject` has an attribute by name.
-    /// - Parameter attributeName: The name of the attribute to test for.
-    /// - Returns: `True` if the attribute exists on this `PythonObject`.
-    @inlinable
-    @_disfavoredOverload
-    public func hasAttribute(_ attributeName: some StringProtocol) -> Bool {
-        attributes.contains(attributeName)
-    }
-
-    /// Dynamically lookup an attribute on the underlying python object.
-    /// This is used for @dynamicMemberLookup.
-    public subscript(dynamicMember member: StaticString) -> PythonObject {
-        get {
-            attributes[required: member]
-        }
-        nonmutating set(newValue) {
-            attributes[member] = consume newValue
-        }
-    }
-    /// Dynamically lookup an attribute on the underlying python object.
-    /// This is used for @dynamicMemberLookup.
-    @_disfavoredOverload
-    public subscript(dynamicMember member: String) -> PythonObject {
-        get {
-            attributes[required: member]
-        }
-        nonmutating set(newValue) {
-            attributes[member] = consume newValue
-        }
-    }
-}
-
 // Calling
 extension PythonObject {
     /// A structure representig the pair of key and value for calling a python callable.
