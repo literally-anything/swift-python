@@ -7,7 +7,6 @@
  */
 
 public import CPython
-public import BasicContainers
 
 /// A raw CPython PyObject reference. This type is not managed, so reference counting must be done manually.
 public typealias UnsafePyObjectRef = UnsafeMutablePointer<PyObject>
@@ -16,7 +15,7 @@ public typealias UnsafePyObjectRef = UnsafeMutablePointer<PyObject>
 /// Allows access to the members of the type using dymanic member lookup.
 /// For callable types, this is dynamically callable as well.
 @safe
-// @dynamicCallable
+@dynamicCallable
 @dynamicMemberLookup
 public struct PythonObject: @unchecked Sendable, ~Copyable {
     /// The raw CPython PyObject pointer.
@@ -121,81 +120,7 @@ extension PythonObject {
     }
 }
 
-// Calling
-extension PythonObject {
-    /// A structure representig the pair of key and value for calling a python callable.
-    /// This is a temporary solution until ~Copyable arrays can be ExpressibleByArrayLiteral.
-    public struct TempKeyValuePair: ~Copyable {
-        public var key: String?
-        public var value: PythonObject
-        
-        public init(key: String? = nil, value: consuming PythonObject) {
-            self.key = key
-            self.value = value
-        }
-    }
-
-    /// Call this python object like a function.
-    /// This is a temporary solution. Once ~Copyable arrays can be ExpressibleByArrayLiteral, this will be replaced with @dynamicallyCallable.
-    /// - Parameter args: The list of key value pairs for parameters.
-    @discardableResult
-    public func callAsFunction(_ args: borrowing RigidArray<TempKeyValuePair>) throws(PythonError) -> PythonObject? {
-        fatalError("Not Implemented")
-    }
-    /// Call this python object like a function.
-    /// This is a temporary solution. Once ~Copyable arrays can be ExpressibleByArrayLiteral, this will be replaced with @dynamicallyCallable.
-    /// - Parameter args: The tuple of `PythonConvertible` arguments to pass.
-    @discardableResult
-    public func callAsFunction<each O>(_ args: repeat each O) throws(PythonError) -> PythonObject? where repeat each O: PythonConvertible {
-        fatalError("Not Implemented")
-    }
-
-    /// Call this python object like a function.
-    /// This is a temporary solution. Once ~Copyable arrays can be ExpressibleByArrayLiteral, this will be replaced with @dynamicallyCallable.
-    /// - Parameter argument: The single object argument.
-    @inlinable
-    @discardableResult
-    public func callAsFunction(_ argument: borrowing some PythonConvertible) throws(PythonError) -> PythonObject? {
-        return try self.callAsFunction(argument._toPythonObject())
-    }
-    /// Call this python object like a function.
-    /// This is a temporary solution. Once ~Copyable arrays can be ExpressibleByArrayLiteral, this will be replaced with @dynamicallyCallable.
-    /// - Parameter argument: The single object argument.
-    @inlinable
-    @discardableResult
-    public func callAsFunction(_ argument: borrowing PythonObject) throws(PythonError) -> PythonObject? {
-        let objectRef: UnsafePyObjectRef? = PyObject_CallOneArg(pyObject, argument.pyObject)
-        // Replace with error tracking when moved to dynamic callable
-        try PythonError.check()
-        let object: PythonObject? = PythonObject(unsafeUnretained: objectRef)
-        if let object {
-            if !object.isNone {
-                return object
-            }
-        }
-        return nil
-    }
-
-    /// Call this python object like a function.
-    /// This is a temporary solution. Once ~Copyable arrays can be ExpressibleByArrayLiteral, this will be replaced with @dynamicallyCallable.
-    @discardableResult
-    public func callAsFunction() throws(PythonError) -> PythonObject? {
-        let objectRef: UnsafePyObjectRef? = PyObject_CallNoArgs(pyObject)
-        // Replace with error tracking when moved to dynamic callable
-        try PythonError.check()
-        let object: PythonObject? = PythonObject(unsafeUnretained: objectRef)
-        if let object {
-            if !object.isNone {
-                return object
-            }
-        }
-        return nil
-    }
-
-    // func dynamicallyCall(withKeywordArguments args: KeyValuePairs<String, PythonObject>) {}
-}
-
-// Equality
+// Identity
 extension PythonObject {
     /// Check if the two `PythonObjects` reference the same underlying object.
     public static func === (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> Bool {

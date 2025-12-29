@@ -39,4 +39,9 @@ extension PythonObject {
     public init(_ object: consuming some PythonConvertible & ~Copyable) throws(PythonError) {
         self = try object._toPythonObject()
     }
+
+    @inlinable
+    public consuming func to<T: PythonConvertible & ~Copyable>(type: T.Type) throws(PythonError) -> T {
+        return try T(self)
+    }
 }
