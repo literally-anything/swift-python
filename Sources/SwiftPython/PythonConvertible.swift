@@ -8,15 +8,22 @@
 
 /// A type that can be converted to a python object 
 public protocol PythonConvertible: ~Copyable {
+    /// Initialize from a `PythonObject`.
+    init(_ pythonObject: consuming PythonObject) throws(PythonError)
+
     /// Get this instance represented as a `PythonObject`.
     ///
     /// ToDo: Change this to a `var pythonObject: PythonObject { consuming get }` whenever that stops giving weird errors when returning self.
-    func _toPythonObject() throws(PythonError) -> PythonObject
+    consuming func _toPythonObject() throws(PythonError) -> PythonObject
 }
 
 extension PythonObject: PythonConvertible {
     @inlinable
-    public func _toPythonObject() -> PythonObject {
+    public init(_ pythonObject: consuming PythonObject) {
+        self = pythonObject
+    }
+    @inlinable
+    public borrowing func _toPythonObject() -> PythonObject {
         return copy()
     }
 }
@@ -29,7 +36,7 @@ extension SharedPythonObject: PythonConvertible {
 
 extension PythonObject {
     @inlinable
-    public init(_ object: borrowing some PythonConvertible) throws(PythonError) {
+    public init(_ object: consuming some PythonConvertible & ~Copyable) throws(PythonError) {
         self = try object._toPythonObject()
     }
 }

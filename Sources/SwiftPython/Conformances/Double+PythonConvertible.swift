@@ -8,20 +8,32 @@
 
 import CPython
 
-extension CFloat16: PythonConvertible {
-    public func _toPythonObject() throws(PythonError) -> PythonObject {
+extension BinaryFloatingPoint {
+    public init(_ pythonObject: borrowing PythonObject) throws(PythonError) {
+        let numberRef: UnsafePyObjectRef? = PyNumber_Long(pythonObject.pyObject)
+        guard let numberRef else {
+            try PythonError.check()
+            throw PythonError.unknown
+        }
+        let number: Int = PyNumber_AsSsize_t(numberRef, nil)
+        self = .init(number)
+    }
+}
+
+extension Float16: PythonConvertible {
+    public borrowing func _toPythonObject() throws(PythonError) -> PythonObject {
         return try CDouble(self)._toPythonObject()
     }
 }
 
-extension CFloat: PythonConvertible {
-    public func _toPythonObject() throws(PythonError) -> PythonObject {
+extension Float: PythonConvertible {
+    public borrowing func _toPythonObject() throws(PythonError) -> PythonObject {
         return try CDouble(self)._toPythonObject()
     }
 }
 
-extension CDouble: PythonConvertible {
-    public func _toPythonObject() throws(PythonError) -> PythonObject {
+extension Double: PythonConvertible {
+    public borrowing func _toPythonObject() throws(PythonError) -> PythonObject {
         let ref: UnsafePyObjectRef? = PyFloat_FromDouble(self)
         guard let ref else {
             try PythonError.check()

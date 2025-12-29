@@ -8,6 +8,18 @@
 
 import CPython
 
+extension FixedWidthInteger {
+    public init(_ pythonObject: borrowing PythonObject) throws(PythonError) {
+        let numberRef: UnsafePyObjectRef? = PyNumber_Long(pythonObject.pyObject)
+        guard let numberRef else {
+            try PythonError.check()
+            throw PythonError.unknown
+        }
+        let number: Py_ssize_t = PyNumber_AsSsize_t(numberRef, nil)
+        self = .init(number)
+    }
+}
+
 extension Int8: PythonConvertible {
     public func _toPythonObject() throws(PythonError) -> PythonObject {
         return try Int32(self)._toPythonObject()
@@ -31,7 +43,7 @@ extension UInt16: PythonConvertible {
 }
 
 extension Int32: PythonConvertible {
-    public func _toPythonObject() throws(PythonError) -> PythonObject {
+    public borrowing func _toPythonObject() throws(PythonError) -> PythonObject {
         let ref: UnsafePyObjectRef? = PyLong_FromInt32(self)
         guard let ref else {
             try PythonError.check()
@@ -41,7 +53,7 @@ extension Int32: PythonConvertible {
     }
 }
 extension UInt32: PythonConvertible {
-    public func _toPythonObject() throws(PythonError) -> PythonObject {
+    public borrowing func _toPythonObject() throws(PythonError) -> PythonObject {
         let ref: UnsafePyObjectRef? = PyLong_FromUInt32(self)
         guard let ref else {
             try PythonError.check()
@@ -52,7 +64,7 @@ extension UInt32: PythonConvertible {
 }
 
 extension Int64: PythonConvertible {
-    public func _toPythonObject() throws(PythonError) -> PythonObject {
+    public borrowing func _toPythonObject() throws(PythonError) -> PythonObject {
         let ref: UnsafePyObjectRef? = PyLong_FromInt64(self)
         guard let ref else {
             try PythonError.check()
@@ -62,7 +74,7 @@ extension Int64: PythonConvertible {
     }
 }
 extension UInt64: PythonConvertible {
-    public func _toPythonObject() throws(PythonError) -> PythonObject {
+    public borrowing func _toPythonObject() throws(PythonError) -> PythonObject {
         let ref: UnsafePyObjectRef? = PyLong_FromUInt64(self)
         guard let ref else {
             try PythonError.check()

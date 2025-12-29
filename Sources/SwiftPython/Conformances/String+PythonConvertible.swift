@@ -8,8 +8,8 @@
 
 import CPython
 
-extension String: PythonConvertible {
-    public func _toPythonObject() throws(PythonError) -> PythonObject {
+extension StringProtocol {
+    public borrowing func _toPythonObject() throws(PythonError) -> PythonObject {
         let objectRef: UnsafePyObjectRef? = withCString { cString in
             PyUnicode_FromString(cString)
         }
@@ -18,23 +18,22 @@ extension String: PythonConvertible {
             throw PythonError.unknown
         }
         return PythonObject(unsafeUnretained: objectRef)
+    }
+}
+
+extension String: PythonConvertible {
+    public init(_ pythonObject: borrowing PythonObject) throws(PythonError) {
+        self = try pythonObject.str()
     }
 }
 
 extension Substring: PythonConvertible {
-    public func _toPythonObject() throws(PythonError) -> PythonObject {
-        let objectRef: UnsafePyObjectRef? = withCString { cString in
-            PyUnicode_FromString(cString)
-        }
-        guard let objectRef else {
-            try PythonError.check()
-            throw PythonError.unknown
-        }
-        return PythonObject(unsafeUnretained: objectRef)
+    public init(_ pythonObject: borrowing PythonObject) throws(PythonError) {
+        self = try pythonObject.str()[...]
     }
 }
 
-extension StaticString: PythonConvertible {
+extension StaticString {
     public func _toPythonObject() throws(PythonError) -> PythonObject {
         let objectRef: UnsafePyObjectRef? = PyUnicode_FromString(_cStringStart)
         guard let objectRef else {
