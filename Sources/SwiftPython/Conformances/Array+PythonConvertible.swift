@@ -36,7 +36,7 @@ extension Array: PythonConvertible where Element: PythonConvertible {
         }
     }
 
-    public borrowing func _toPythonObject() throws(PythonError) -> PythonObject {
+    public borrowing func convertToPythonObject() throws(PythonError) -> PythonObject {
         let listRef: UnsafePyObjectRef? = PyList_New(Py_ssize_t(count))
         guard let listRef else {
             try PythonError.check()
@@ -45,7 +45,7 @@ extension Array: PythonConvertible where Element: PythonConvertible {
         let list: PythonObject = PythonObject(unsafeUnretained: listRef)
 
         for (index, item) in enumerated() {
-            let pyItem = try item._toPythonObject()
+            let pyItem = try item.convertToPythonObject()
             // PyList_SetItem steals the reference, so we take() it so it won't get released
             let ret: CInt = PyList_SetItem(list.pyObject, index, pyItem.take())
             guard ret == 0 else {

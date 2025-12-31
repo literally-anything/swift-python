@@ -21,19 +21,19 @@ extension BinaryFloatingPoint {
 }
 
 extension Float16: PythonConvertible {
-    public borrowing func _toPythonObject() throws(PythonError) -> PythonObject {
-        return try CDouble(self)._toPythonObject()
+    public borrowing func convertToPythonObject() throws(PythonError) -> PythonObject {
+        return try CDouble(self).convertToPythonObject()
     }
 }
 
 extension Float: PythonConvertible {
-    public borrowing func _toPythonObject() throws(PythonError) -> PythonObject {
-        return try CDouble(self)._toPythonObject()
+    public borrowing func convertToPythonObject() throws(PythonError) -> PythonObject {
+        return try CDouble(self).convertToPythonObject()
     }
 }
 
 extension Double: PythonConvertible {
-    public borrowing func _toPythonObject() throws(PythonError) -> PythonObject {
+    public borrowing func convertToPythonObject() throws(PythonError) -> PythonObject {
         let ref: UnsafePyObjectRef? = PyFloat_FromDouble(self)
         guard let ref else {
             try PythonError.check()

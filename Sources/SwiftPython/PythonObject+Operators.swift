@@ -364,7 +364,7 @@ extension PythonObject {
             let sliceRange = slice.relative(to: indices)
 
             // ToDo: Make this work with ~Copyable types
-            let pythonObject = PythonError.toTracked { () throws(PythonError) in try newValue._toPythonObject() }
+            let pythonObject = PythonError.toTracked { () throws(PythonError) in try newValue.convertToPythonObject() }
             guard let pythonObject else { return }
             self[listSlice: sliceRange] = pythonObject
         }
@@ -486,7 +486,7 @@ extension PythonObject {
         }
         set(newValue) {
             // ToDo: Make this work with ~Copyable types
-            let pythonObject = PythonError.toTracked { () throws(PythonError) in try newValue._toPythonObject() }
+            let pythonObject = PythonError.toTracked { () throws(PythonError) in try newValue.convertToPythonObject() }
             guard let pythonObject else { return }
             self[key: key] = consume pythonObject
         }

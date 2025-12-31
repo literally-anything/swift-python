@@ -21,29 +21,29 @@ extension FixedWidthInteger {
 }
 
 extension Int8: PythonConvertible {
-    public func _toPythonObject() throws(PythonError) -> PythonObject {
-        return try Int32(self)._toPythonObject()
+    public func convertToPythonObject() throws(PythonError) -> PythonObject {
+        return try Int32(self).convertToPythonObject()
     }
 }
 extension UInt8: PythonConvertible {
-    public func _toPythonObject() throws(PythonError) -> PythonObject {
-        return try UInt32(self)._toPythonObject()
+    public func convertToPythonObject() throws(PythonError) -> PythonObject {
+        return try UInt32(self).convertToPythonObject()
     }
 }
 
 extension Int16: PythonConvertible {
-    public func _toPythonObject() throws(PythonError) -> PythonObject {
-        return try Int32(self)._toPythonObject()
+    public func convertToPythonObject() throws(PythonError) -> PythonObject {
+        return try Int32(self).convertToPythonObject()
     }
 }
 extension UInt16: PythonConvertible {
-    public func _toPythonObject() throws(PythonError) -> PythonObject {
-        return try UInt32(self)._toPythonObject()
+    public func convertToPythonObject() throws(PythonError) -> PythonObject {
+        return try UInt32(self).convertToPythonObject()
     }
 }
 
 extension Int32: PythonConvertible {
-    public borrowing func _toPythonObject() throws(PythonError) -> PythonObject {
+    public borrowing func convertToPythonObject() throws(PythonError) -> PythonObject {
         let ref: UnsafePyObjectRef? = PyLong_FromInt32(self)
         guard let ref else {
             try PythonError.check()
@@ -53,7 +53,7 @@ extension Int32: PythonConvertible {
     }
 }
 extension UInt32: PythonConvertible {
-    public borrowing func _toPythonObject() throws(PythonError) -> PythonObject {
+    public borrowing func convertToPythonObject() throws(PythonError) -> PythonObject {
         let ref: UnsafePyObjectRef? = PyLong_FromUInt32(self)
         guard let ref else {
             try PythonError.check()
@@ -64,7 +64,7 @@ extension UInt32: PythonConvertible {
 }
 
 extension Int64: PythonConvertible {
-    public borrowing func _toPythonObject() throws(PythonError) -> PythonObject {
+    public borrowing func convertToPythonObject() throws(PythonError) -> PythonObject {
         let ref: UnsafePyObjectRef? = PyLong_FromInt64(self)
         guard let ref else {
             try PythonError.check()
@@ -74,7 +74,7 @@ extension Int64: PythonConvertible {
     }
 }
 extension UInt64: PythonConvertible {
-    public borrowing func _toPythonObject() throws(PythonError) -> PythonObject {
+    public borrowing func convertToPythonObject() throws(PythonError) -> PythonObject {
         let ref: UnsafePyObjectRef? = PyLong_FromUInt64(self)
         guard let ref else {
             try PythonError.check()
@@ -85,7 +85,7 @@ extension UInt64: PythonConvertible {
 }
 
 extension Int: PythonConvertible {
-    public func _toPythonObject() throws(PythonError) -> PythonObject {
+    public func convertToPythonObject() throws(PythonError) -> PythonObject {
         let ref: UnsafePyObjectRef? =
             if MemoryLayout<Int>.size == 8 {
                 PyLong_FromInt64(Int64(self))
@@ -100,7 +100,7 @@ extension Int: PythonConvertible {
     }
 }
 extension UInt: PythonConvertible {
-    public func _toPythonObject() throws(PythonError) -> PythonObject {
+    public func convertToPythonObject() throws(PythonError) -> PythonObject {
         let ref: UnsafePyObjectRef? =
             if MemoryLayout<UInt>.size == 8 {
                 PyLong_FromUInt64(UInt64(self))

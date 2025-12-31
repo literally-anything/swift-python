@@ -14,7 +14,7 @@ public protocol PythonConvertible: ~Copyable {
     /// Get this instance represented as a `PythonObject`.
     ///
     /// ToDo: Change this to a `var pythonObject: PythonObject { consuming get }` whenever that stops giving weird errors when returning self.
-    consuming func _toPythonObject() throws(PythonError) -> PythonObject
+    consuming func convertToPythonObject() throws(PythonError) -> PythonObject
 }
 
 extension PythonObject: PythonConvertible {
@@ -23,13 +23,13 @@ extension PythonObject: PythonConvertible {
         self = pythonObject
     }
     @inlinable
-    public borrowing func _toPythonObject() -> PythonObject {
+    public borrowing func convertToPythonObject() -> PythonObject {
         return copy()
     }
 }
 extension SharedPythonObject: PythonConvertible {
     @inlinable
-    public func _toPythonObject() -> PythonObject {
+    public func convertToPythonObject() -> PythonObject {
         return object.copy()
     }
 }
@@ -37,7 +37,7 @@ extension SharedPythonObject: PythonConvertible {
 extension PythonObject {
     @inlinable
     public init(_ object: consuming some PythonConvertible & ~Copyable) throws(PythonError) {
-        self = try object._toPythonObject()
+        self = try object.convertToPythonObject()
     }
 
     @inlinable

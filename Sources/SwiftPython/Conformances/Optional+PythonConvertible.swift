@@ -17,9 +17,9 @@ extension Optional: PythonConvertible where Wrapped: PythonConvertible & ~Copyab
         }
     }
 
-    public consuming func _toPythonObject() throws(PythonError) -> PythonObject {
+    public consuming func convertToPythonObject() throws(PythonError) -> PythonObject {
         if let wrapped = self {
-            return try wrapped._toPythonObject()
+            return try wrapped.convertToPythonObject()
         } else {
             return PythonObject.none
         }
