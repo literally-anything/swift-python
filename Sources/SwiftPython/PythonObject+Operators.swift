@@ -302,25 +302,73 @@ extension PythonObject {
         }
     }
 
-    // ToDo: Support slices.
-    // subscript(_ slice: some RangeExpression<Py_ssize_t>) -> PythonObject {
-    //     get {
-    //         slice
-    //         let itemRef: UnsafePyObjectRef? = PySequence_GetSlice(pyObject, index)
-    //         guard let itemRef else {
-    //             PythonError.checkTracked()
-    //             return .none
-    //         }
-    //         return PythonObject(unsafeUnretained: itemRef)
-    //     }
-    //     set(newValue) {
-    //         let ret: CInt = PySequence_SetItem(pyObject, index, newValue.pyObject)
-    //         guard ret == 0 else {
-    //             PythonError.checkTracked()
-    //             return
-    //         }
-    //     }
-    // }
+    public var indices: Range<Int> {
+        let length: Py_ssize_t = PyObject_Length(pyObject)
+        guard length >= 0 else {
+            PythonError.checkTracked()
+            return Range(uncheckedBounds: (lower: 0, upper: 0))
+        }
+        return Range(uncheckedBounds: (lower: 0, upper: Int(length)))
+    }
+
+    @usableFromInline
+    internal subscript(listSlice sliceRange: Range<Int>) -> PythonObject {
+        get {
+            let itemRef: UnsafePyObjectRef? = PySequence_GetSlice(pyObject, sliceRange.lowerBound, sliceRange.upperBound)
+            guard let itemRef else {
+                PythonError.checkTracked()
+                return .none
+            }
+            return PythonObject(unsafeUnretained: itemRef)
+        }
+        set(newValue) {
+            let ret: CInt = PySequence_SetSlice(pyObject, sliceRange.lowerBound, sliceRange.upperBound, newValue.pyObject)
+            guard ret == 0 else {
+                PythonError.checkTracked()
+                return
+            }
+        }
+    }
+
+    @inlinable
+    public subscript(_ slice: some RangeExpression<Int>) -> PythonObject {
+        get {
+            let sliceRange = slice.relative(to: indices)
+            return self[listSlice: sliceRange]
+        }
+        set(newValue) {
+            let sliceRange = slice.relative(to: indices)
+            self[listSlice: sliceRange] = newValue
+        }
+    }
+
+    @inlinable
+    public subscript<T: PythonConvertible & ~Copyable>(_ slice: some RangeExpression<Int>) -> T? {
+        get {
+            let sliceRange = slice.relative(to: indices)
+            let pythonObject = self[listSlice: sliceRange]
+
+            do {
+                return try T(pythonObject)
+            } catch let error {
+                _ = PythonError.toTracked { () throws(PythonError) in throw error }
+                return nil
+            }
+        }
+    }
+    @inlinable
+    public subscript<T: PythonConvertible>(_ slice: some RangeExpression<Int>) -> T {
+        @available(*, unavailable)
+        get { fatalError("Unreachable") }
+        set(newValue) {
+            let sliceRange = slice.relative(to: indices)
+
+            // ToDo: Make this work with ~Copyable types
+            let pythonObject = PythonError.toTracked { () throws(PythonError) in try newValue._toPythonObject() }
+            guard let pythonObject else { return }
+            self[listSlice: sliceRange] = pythonObject
+        }
+    }
 }
 
 // Mapping
@@ -370,6 +418,7 @@ extension PythonObject {
     public subscript(_ key: some StringProtocol) -> PythonObject? {
         self[key: key]
     }
+
     @inlinable
     internal subscript(key key: some StringProtocol) -> PythonObject? {
         get {
@@ -398,6 +447,48 @@ extension PythonObject {
                 PythonError.checkTracked()
                 return
             }
+        }
+    }
+
+    @inlinable
+    public subscript<T: PythonConvertible>(_ key: String) -> T? {
+        get {
+            return self[key: key]
+        }
+        set(newValue) {
+            self[key: key] = newValue
+        }
+    }
+    @inlinable
+    public subscript<T: PythonConvertible>(_ key: some StringProtocol) -> T? {
+        get {
+            return self[key: key]
+        }
+        set(newValue) {
+            self[key: key] = newValue
+        }
+    }
+
+    @inlinable
+    internal subscript<T: PythonConvertible>(key key: some StringProtocol) -> T? {
+        get {
+            let pythonObject = self[key: key]
+            guard let pythonObject else {
+                return nil
+            }
+
+            do {
+                return try T(pythonObject)
+            } catch let error {
+                _ = PythonError.toTracked { () throws(PythonError) in throw error }
+                return nil
+            }
+        }
+        set(newValue) {
+            // ToDo: Make this work with ~Copyable types
+            let pythonObject = PythonError.toTracked { () throws(PythonError) in try newValue._toPythonObject() }
+            guard let pythonObject else { return }
+            self[key: key] = consume pythonObject
         }
     }
 }
