@@ -16,8 +16,10 @@ public func pythonTuple(from arguments: consuming RigidArray<PythonObject>) thro
         throw PythonError.unknown
     }
     let tuple = PythonObject(unsafeUnretained: tupleRef)
-    for index in arguments.indices {
-        let ret: CInt = PyTuple_SetItem(tuple.pyObject, Py_ssize_t(index), arguments[index].pyObject)
+    for index in arguments.indices.reversed() {
+        let argument = arguments.remove(at: index)
+        // PyTuple_SetItem steals the argument reference, so we take it here to avoid deallocating
+        let ret: CInt = PyTuple_SetItem(tuple.pyObject, Py_ssize_t(index), argument.take())
         guard ret == 0 else {
             try PythonError.check()
             throw PythonError.unknown

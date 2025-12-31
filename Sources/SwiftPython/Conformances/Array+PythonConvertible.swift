@@ -46,7 +46,8 @@ extension Array: PythonConvertible where Element: PythonConvertible {
 
         for (index, item) in enumerated() {
             let pyItem = try item._toPythonObject()
-            let ret: CInt = PyList_SetItem(list.pyObject, index, pyItem.pyObject)
+            // PyList_SetItem steals the reference, so we take() it so it won't get released
+            let ret: CInt = PyList_SetItem(list.pyObject, index, pyItem.take())
             guard ret == 0 else {
                 try PythonError.check()
                 throw PythonError.unknown
