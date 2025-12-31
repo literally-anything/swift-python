@@ -18,7 +18,7 @@ extension Bool: PythonConvertible {
         self = ret == 1
     }
 
-    public borrowing func _toPythonObject() throws(PythonError) -> PythonObject {
+    public borrowing func convertToPythonObject() throws(PythonError) -> PythonObject {
         let integerRepr: CLong
         if self == true { // Weird crash when using just `self` as the condition for if or a ternary.
             integerRepr = 1

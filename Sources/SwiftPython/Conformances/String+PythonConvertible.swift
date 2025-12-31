@@ -9,7 +9,7 @@
 import CPython
 
 extension StringProtocol {
-    public func _toPythonObject() throws(PythonError) -> PythonObject {
+    public func convertToPythonObject() throws(PythonError) -> PythonObject {
         let objectRef: UnsafePyObjectRef? = withCString { cString in
             PyUnicode_DecodeUTF8(cString, Py_ssize_t(utf8.count), "strict")
         }

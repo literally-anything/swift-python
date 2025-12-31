@@ -35,7 +35,7 @@ public func pythonTuple(from arguments: consuming RigidArray<any PythonConvertib
     ) { (contents) throws(PythonError) -> Void in
         for index in arguments.indices.reversed() {
             let argument = arguments.remove(at: index)
-            contents.append(try argument._toPythonObject())
+            contents.append(try argument.convertToPythonObject())
         }
     }
     return try pythonTuple(from: pythonArguments)
@@ -47,7 +47,7 @@ public func pythonTuple(from arguments: [any PythonConvertible]) throws(PythonEr
         capacity: arguments.count
     ) { (contents) throws(PythonError) -> Void in
         for argument in arguments {
-            contents.append(try argument._toPythonObject())
+            contents.append(try argument.convertToPythonObject())
         }
     }
     return try pythonTuple(from: argumentsRigidArray)

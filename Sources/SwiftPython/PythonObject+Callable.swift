@@ -75,7 +75,7 @@ extension PythonObject.Callable {
     @discardableResult
     @_disfavoredOverload
     public func call<T: PythonConvertible & ~Copyable>(argument: consuming T) throws(PythonError) -> PythonObject? {
-        var pythonArgument = try argument._toPythonObject()
+        var pythonArgument = try argument.convertToPythonObject()
         return try call(argument: &pythonArgument)
     }
     /// Call the callable with one argument.
@@ -86,7 +86,7 @@ extension PythonObject.Callable {
     @discardableResult
     @_disfavoredOverload
     public func call<T: PythonConvertible>(argument: inout T) throws(PythonError) -> PythonObject? {
-        var pythonArgument = try argument._toPythonObject()
+        var pythonArgument = try argument.convertToPythonObject()
         let output: PythonObject? = try call(argument: &pythonArgument)
 
         // Update the argument with any changes
@@ -212,7 +212,7 @@ extension PythonObject.Callable {
             capacity: arguments.count
         ) { (contents) throws(PythonError) in
             for index in arguments.indices {
-                contents.append(try arguments[index]._toPythonObject())
+                contents.append(try arguments[index].convertToPythonObject())
             }
         }
         var keywords: [String] = Array()
@@ -222,7 +222,7 @@ extension PythonObject.Callable {
         ) { (contents) throws(PythonError) in
             for index in keywordArguments.indices {
                 keywords.append(keywordArguments[index].key)
-                contents.append(try keywordArguments[index].value._toPythonObject())
+                contents.append(try keywordArguments[index].value.convertToPythonObject())
             }
         }
         return try call(arguments: &pythonArguments, keywordArguments: &pythonKeywordArguments, keywords: keywords)
@@ -249,7 +249,7 @@ extension PythonObject.Callable {
             capacity: arguments.count
         ) { (contents) throws(PythonError) in
             for index in arguments.indices {
-                contents.append(try arguments[index]._toPythonObject())
+                contents.append(try arguments[index].convertToPythonObject())
             }
         }
         var keywords: [String] = Array()
@@ -259,7 +259,7 @@ extension PythonObject.Callable {
         ) { (contents) throws(PythonError) in
             for index in keywordArguments.indices {
                 keywords.append(keywordArguments[index].key)
-                contents.append(try keywordArguments[index].value._toPythonObject())
+                contents.append(try keywordArguments[index].value.convertToPythonObject())
             }
         }
         return try call(arguments: &pythonArguments, keywordArguments: &pythonKeywordArguments, keywords: keywords)
@@ -292,6 +292,7 @@ extension PythonObject {
     /// - Parameter argument: The single object argument.
     // @discardableResult
     // public func callAsFunction(_ argument: inout PythonObject) throws(PythonError) -> PythonObject? {
+    //     // Directly pass a PythonObject
     //     return try callable.call(argument: &argument)
     // }
     /// Call this python object as a callable with one argument.
