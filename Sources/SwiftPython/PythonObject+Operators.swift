@@ -220,14 +220,14 @@ extension PythonObject {
 
 // Sequence
 extension PythonObject {
-    public var length: Py_ssize_t {
+    public var count: Int {
         get throws(PythonError) {
             let ret: Py_ssize_t = PyObject_Length(pyObject)
             guard ret >= 0 else {
                 try PythonError.check()
                 throw PythonError.unknown
             }
-            return ret
+            return Int(ret)
         }
     }
 
@@ -257,27 +257,27 @@ extension PythonObject {
         return ret == 1
     }
 
-    public func index(of item: borrowing PythonObject) throws(PythonError) -> Py_ssize_t {
+    public func index(of item: borrowing PythonObject) throws(PythonError) -> Int {
         let index: Py_ssize_t = PySequence_Index(pyObject, item.pyObject)
         guard index >= 0 else {
             try PythonError.check()
             throw PythonError.unknown
         }
-        return index
+        return Int(index)
     }
 
-    public func count(of item: borrowing PythonObject) throws(PythonError) -> Py_ssize_t {
+    public func count(of item: borrowing PythonObject) throws(PythonError) -> Int {
         let count: Py_ssize_t = PySequence_Count(pyObject, item.pyObject)
         guard count >= 0 else {
             try PythonError.check()
             throw PythonError.unknown
         }
-        return count
+        return Int(count)
     }
 
-    subscript(_ index: Py_ssize_t) -> PythonObject {
+    subscript(_ index: Int) -> PythonObject {
         get {
-            let itemRef: UnsafePyObjectRef? = PySequence_GetItem(pyObject, index)
+            let itemRef: UnsafePyObjectRef? = PySequence_GetItem(pyObject, Py_ssize_t(index))
             guard let itemRef else {
                 PythonError.checkTracked()
                 return .none
@@ -285,15 +285,15 @@ extension PythonObject {
             return PythonObject(unsafeUnretained: itemRef)
         }
     }
-    subscript(_ index: Py_ssize_t) -> PythonObject? {
+    subscript(_ index: Int) -> PythonObject? {
         @available(*, unavailable)
         get { fatalError("Unreachable") }
         set(newValue) {
             let ret: CInt
             if let newValue {
-                ret = PySequence_SetItem(pyObject, index, newValue.pyObject)
+                ret = PySequence_SetItem(pyObject, Py_ssize_t(index), newValue.pyObject)
             } else {
-                ret = PySequence_DelItem(pyObject, index)
+                ret = PySequence_DelItem(pyObject, Py_ssize_t(index))
             }
             guard ret == 0 else {
                 PythonError.checkTracked()

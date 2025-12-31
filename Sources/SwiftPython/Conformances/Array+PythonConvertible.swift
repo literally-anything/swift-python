@@ -10,7 +10,7 @@ import CPython
 
 extension Array: PythonConvertible where Element: PythonConvertible {
     public init(_ pythonObject: borrowing PythonObject) throws(PythonError) {
-        let length = try pythonObject.length
+        let length = try pythonObject.count
         var error: PythonError? = nil
         self.init(
             unsafeUninitializedCapacity: Int(length)
