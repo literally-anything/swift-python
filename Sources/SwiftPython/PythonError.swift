@@ -69,18 +69,36 @@ extension PythonError {
     @TaskLocal
     public static var trackingState: TrackingState? = nil
 
+    @usableFromInline
+    internal static func trackError(error: PythonError) {
+        if trackingState != nil {
+            trackingState!.error = error
+        } else {
+            fatalError("Python error not caught in Swift code: \(error.debugDescription) ; This should be wrapped in `PythonError.withErrorTracking {}`")
+        }
+    }
+
     @discardableResult
     public static func checkTracked() -> Bool {
         do throws(PythonError) {
             try check()
             return true
         } catch let error {
-            if trackingState != nil {
-                trackingState!.error = error
-            } else {
-                fatalError("Python error not caught in Swift code: \(error.debugDescription) ; This should be wrapped in `PythonError.withErrorTracking {}`")
-            }
+            trackError(error: error)
             return false
+        }
+    }
+
+    @inlinable
+    @discardableResult
+    public static func toTracked<T: ~Copyable>(
+        _ body: () throws(PythonError) -> T
+    ) -> T? {
+        do {
+            return try body()
+        } catch let error {
+            trackError(error: error)
+            return nil
         }
     }
 

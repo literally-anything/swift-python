@@ -13,8 +13,7 @@ public struct PythonInterpreter: SendableMetatype {
     /// Stores whether the interpreter is initialized yet.
     internal static let isInitialized: Mutex<Bool> = Mutex(false)
     /// Ensures that the interpreter has been initialized.
-    @usableFromInline
-    internal static func ensureInitialized() {
+    public static func ensureInitialized() {
         isInitialized.withLock { isInitialized in
             if isInitialized {
                 return
