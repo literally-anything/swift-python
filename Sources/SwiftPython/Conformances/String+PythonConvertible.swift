@@ -9,14 +9,15 @@
 import CPython
 
 extension StringProtocol {
-    public borrowing func _toPythonObject() throws(PythonError) -> PythonObject {
+    public func _toPythonObject() throws(PythonError) -> PythonObject {
         let objectRef: UnsafePyObjectRef? = withCString { cString in
-            PyUnicode_FromString(cString)
+            PyUnicode_DecodeUTF8(cString, Py_ssize_t(utf8.count), "strict")
         }
         guard let objectRef else {
             try PythonError.check()
             throw PythonError.unknown
         }
+
         return PythonObject(unsafeUnretained: objectRef)
     }
 }

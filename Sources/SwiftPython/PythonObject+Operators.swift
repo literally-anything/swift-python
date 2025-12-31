@@ -284,8 +284,17 @@ extension PythonObject {
             }
             return PythonObject(unsafeUnretained: itemRef)
         }
+    }
+    subscript(_ index: Py_ssize_t) -> PythonObject? {
+        @available(*, unavailable)
+        get { fatalError("Unreachable") }
         set(newValue) {
-            let ret: CInt = PySequence_SetItem(pyObject, index, newValue.pyObject)
+            let ret: CInt
+            if let newValue {
+                ret = PySequence_SetItem(pyObject, index, newValue.pyObject)
+            } else {
+                ret = PySequence_DelItem(pyObject, index)
+            }
             guard ret == 0 else {
                 PythonError.checkTracked()
                 return

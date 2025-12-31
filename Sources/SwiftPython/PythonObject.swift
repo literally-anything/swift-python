@@ -99,7 +99,7 @@ extension PythonObject {
     }
 
     /// Take the raw CPython PyObject reference and consume `self`.
-    /// The returned reference is already retained and must be manually.
+    /// The returned reference is already retained and must be manually released.
     /// - Returns: The PyObject reference held by this `PythonObject`.
     @unsafe
     public consuming func take() -> UnsafePyObjectRef {
@@ -134,7 +134,13 @@ extension PythonObject {//: CustomStringConvertible, CustomDebugStringConvertibl
     /// This is equivalent to calling `str()` in python.
     public func str() throws(PythonError) -> String {
         let strObjectRef: UnsafePyObjectRef? = PyObject_Str(pyObject)
-        let cString: UnsafePointer<CChar>? = PyUnicode_AsUTF8AndSize(strObjectRef, nil)
+        guard let strObjectRef else {
+            try PythonError.check()
+            throw PythonError.unknown
+        }
+        let strObject: PythonObject = PythonObject(unsafeUnretained: strObjectRef)
+
+        let cString: UnsafePointer<CChar>? = PyUnicode_AsUTF8AndSize(strObject.pyObject, nil)
         guard let cString else {
             try PythonError.check()
             throw PythonError.unknown
@@ -145,7 +151,13 @@ extension PythonObject {//: CustomStringConvertible, CustomDebugStringConvertibl
     /// This is equivalent to calling `repr()` in python.
     public func repr() throws(PythonError) -> String? {
         let strObjectRef: UnsafePyObjectRef? = PyObject_Repr(pyObject)
-        let cString: UnsafePointer<CChar>? = PyUnicode_AsUTF8AndSize(strObjectRef, nil)
+        guard let strObjectRef else {
+            try PythonError.check()
+            throw PythonError.unknown
+        }
+        let strObject: PythonObject = PythonObject(unsafeUnretained: strObjectRef)
+
+        let cString: UnsafePointer<CChar>? = PyUnicode_AsUTF8AndSize(strObject.pyObject, nil)
         guard let cString else {
             try PythonError.check()
             throw PythonError.unknown
