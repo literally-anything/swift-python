@@ -298,14 +298,25 @@ extension PythonObject {
     /// - Parameter argument: The single object argument.
     // @inlinable
     // @discardableResult
-    // public func callAsFunction(_ argument: consuming some PythonConvertible) throws(PythonError) -> PythonObject? {
+    // public func callAsFunction(_ argument: borrowing some PythonConvertible & Copyable) throws(PythonError) -> PythonObject? {
+    //     // Pass any Copyable PythonConvertible using borrowing and a copy
     //     return try callable.call(argument: argument)
     // }
     /// Call this python object as a callable with one argument.
     /// - Parameter argument: The single object argument.
     // @inlinable
     // @discardableResult
-    // public func callAsFunction(_ argument: inout some PythonConvertible) throws(PythonError) -> PythonObject? {
+    // @_disfavoredOverload
+    // public func callAsFunction(_ argument: consuming some PythonConvertible & ~Copyable) throws(PythonError) -> PythonObject? {
+    //     // Pass any PythonConvertible by consuming
+    //     return try callable.call(argument: argument)
+    // }
+    /// Call this python object as a callable with one argument.
+    /// - Parameter argument: The single object argument.
+    // @inlinable
+    // @discardableResult
+    // public func callAsFunction(_ argument: inout some PythonConvertible & ~Copyable) throws(PythonError) -> PythonObject? {
+    //     // Pass any PythonConvertible mutating it
     //     return try callable.call(argument: &argument)
     // }
 
@@ -314,14 +325,15 @@ extension PythonObject {
         return try callable.call(arguments: arguments)
     }
     @discardableResult
-    public func dynamicallyCall(withKeywordArguments arguments: KeyValuePairs<String?, any PythonConvertible>) throws(PythonError) -> PythonObject? {
+    @_disfavoredOverload
+    public func dynamicallyCall(withKeywordArguments arguments: KeyValuePairs<String, any PythonConvertible>) throws(PythonError) -> PythonObject? {
         var positionalArguments: [any PythonConvertible] = []
         var keywordArguments: Dictionary<String, any PythonConvertible> = [:]
         for (keyword, argument) in arguments {
-            if let keyword {
-                keywordArguments[keyword] = argument
-            } else {
+            if keyword.isEmpty {
                 positionalArguments.append(argument)
+            } else {
+                keywordArguments[keyword] = argument
             }
         }
         return try callable.call(arguments: positionalArguments, keywordArguments: keywordArguments)
