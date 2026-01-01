@@ -331,6 +331,16 @@ extension PythonObject {
     }
 
     @inlinable
+    public subscript(_ slice: UnboundedRange) -> PythonObject {
+        get {
+            return self[listSlice: indices]
+        }
+        set(newValue) {
+            self[listSlice: indices] = newValue
+        }
+    }
+
+    @inlinable
     public subscript(_ slice: some RangeExpression<Int>) -> PythonObject {
         get {
             let sliceRange = slice.relative(to: indices)
@@ -339,6 +349,21 @@ extension PythonObject {
         set(newValue) {
             let sliceRange = slice.relative(to: indices)
             self[listSlice: sliceRange] = newValue
+        }
+    }
+
+    @inlinable
+    public subscript<T: PythonConvertible & ~Copyable>(_ slice: UnboundedRange) -> T? {
+        get {
+            return self[indices]
+        }
+    }
+    @inlinable
+    public subscript<T: PythonConvertible>(_ slice: UnboundedRange) -> T {
+        @available(*, unavailable)
+        get { fatalError("Unreachable") }
+        set(newValue) {
+            self[indices] = newValue
         }
     }
 
