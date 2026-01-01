@@ -171,6 +171,17 @@ extension PythonObject {//: CustomStringConvertible, CustomDebugStringConvertibl
     public var debugDescription: String {
         (try? repr()) ?? "PythonObject()"
     }
+
+    /// A dictionary of capabilities mapped to whether the object supports them.
+    /// The capability keys are `callable`, `sequence`, `mapping`, and `iterable`.
+    public var capabilities: Dictionary<String, Bool> {
+        return [
+            "callable": PyCallable_Check(pyObject) == 1,
+            "sequence": PySequence_Check(pyObject) == 1,
+            "mapping": PyMapping_Check(pyObject) == 1,
+            "iterator": PyIter_Check(pyObject) != 0
+        ]
+    }
 }
 // Temporary until [SE-0499]
 extension String {
