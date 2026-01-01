@@ -11,9 +11,9 @@ public protocol PythonConvertible: ~Copyable {
     /// Initialize from a `PythonObject`.
     init(_ pythonObject: consuming PythonObject) throws(PythonError)
 
-    /// Get this instance represented as a `PythonObject`.
+    /// Convert this instance to a `PythonObject`.
     ///
-    /// ToDo: Change this to a `var pythonObject: PythonObject { consuming get }` whenever that stops giving weird errors when returning self.
+    /// ToDo: Change this to a `var pythonObject: PythonObject { consuming get, modify }` whenever that stops giving weird errors when returning self.
     consuming func convertToPythonObject() throws(PythonError) -> PythonObject
 }
 
