@@ -78,7 +78,9 @@ extension PythonError {
         /// Record an error into the traking state to be thrown later.
         /// - Parameter error: The error to record
         public func report(_ error: consuming PythonError) {
-            self.error = error
+            if self.error == nil {
+                self.error = error
+            }
         }
 
         /// Whether an error has already been recorded.
