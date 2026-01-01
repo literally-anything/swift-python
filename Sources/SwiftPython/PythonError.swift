@@ -55,6 +55,14 @@ extension PythonError {
             )
         )
     }
+
+    /// Initialize a `PythonError` using a Python error type and a message.
+    internal init(type: UnsafePyObjectRef!, message: StaticString) {
+        PyErr_SetString(type, message._cStringStart)
+        let error = PythonObject(unsafeUnretained: PyErr_GetRaisedException())
+        assert(error != nil, "Python error not set immediately after setting an error. This should never happen.")
+        self.init(error!)
+    }
 }
 
 // Error Tracking
