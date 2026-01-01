@@ -89,8 +89,8 @@ extension PythonObject {
     /// - Returns: An opaque `Sequence` that allows iteration.
     @inlinable
     public func iterable<Element: PythonConvertible & Copyable>(
-        type: Element.Type
-    ) throws(PythonError) -> some Sequence {
+        type: Element.Type = Element.self
+    ) throws(PythonError) -> some Sequence<Element> {
         return IteratorSequence(
             try PythonObjectIterator<Element>(self)
         )
