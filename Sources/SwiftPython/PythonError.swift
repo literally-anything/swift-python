@@ -67,16 +67,41 @@ extension PythonError {
 
 // Error Tracking
 extension PythonError {
+    /// A box for an error to be recorded while using error tracking.
     public final class TrackingState: @unchecked Sendable {
-        public var error: PythonError? = nil
+        /// The stored error or `nil` if no error has occured.
+        internal var error: PythonError? = nil
 
         @usableFromInline
         internal init() {}
+
+        /// Record an error into the traking state to be thrown later.
+        /// - Parameter error: The error to record
+        public func report(_ error: consuming PythonError) {
+            self.error = error
+        }
+
+        /// Whether an error has already been recorded.
+        public var hasError: Bool {
+            error != nil
+        }
+
+        /// Take the error out of the `TrackingState` and set `error` to `nil`.
+        @usableFromInline
+        internal func take() -> PythonError? {
+            return error.take()
+        }
     }
 
+    /// The current error tracking state.
+    /// 
+    /// This stores python errors for multi-step operations in swift constructs that cannot throw so
+    /// that they can be thrown later. This is enabled using the `withErrorTracking(_:)` function.
     @TaskLocal
     public static var trackingState: TrackingState? = nil
 
+    /// Logs an error into the current tracking state.
+    /// This will throw a fatal error if tracking is not running.
     @usableFromInline
     internal static func trackError(error: PythonError) {
         if trackingState != nil {
@@ -86,6 +111,8 @@ extension PythonError {
         }
     }
 
+    /// Check for python errors after a Python C API call and record it to the shared error tracking state.
+    /// - Returns: Whether the call was successful (`true` for good, `false` if an error was recorded).
     @discardableResult
     public static func checkTracked() -> Bool {
         do throws(PythonError) {
@@ -97,6 +124,10 @@ extension PythonError {
         }
     }
 
+    /// Converts a throwing call into error tracking.
+    /// This is rarely the best way to do something.
+    /// - Parameter body: The throwing closure.
+    /// - Returns: The return from `body` or `nil` on error.
     @inlinable
     @discardableResult
     public static func toTracked<T: ~Copyable>(
@@ -110,6 +141,11 @@ extension PythonError {
         }
     }
 
+    /// Enables error tracking in `body`.
+    /// Any python errors that occur inside `body` —whether thrown or recorded with error tracking—will be thrown.
+    /// - Parameter body: The closure to call with error tracking enabled.
+    /// - Throws: `PythonError` if `body` throws or if an error was recorded by the end of `body`.
+    /// - Returns: The return from `body`.
     @inlinable
     public static func withErrorTracking<T: ~Copyable>(
         _ body: () throws(PythonError) -> T
@@ -122,7 +158,7 @@ extension PythonError {
             } catch let e {
                 error = e
             }
-            if let e = trackingState!.error {
+            if let e = trackingState!.take() {
                 error = e
             }
         }
@@ -132,6 +168,11 @@ extension PythonError {
         return returnValue!
     }
 
+    /// Enables error tracking in `body`.
+    /// Any python errors that occur inside `body` —whether thrown or recorded with error tracking—will be thrown.
+    /// - Parameter body: The closure to call with error tracking enabled.
+    /// - Throws: If `body` throws or a `PythonError` if an error was recorded by the end of `body`.
+    /// - Returns: The return from `body`.
     @inlinable
     @_disfavoredOverload
     public static func withErrorTracking<T: ~Copyable>(
@@ -140,7 +181,7 @@ extension PythonError {
         var returnValue: T? = nil
         try $trackingState.withValue(TrackingState()) {
             returnValue = try body()
-            if let error = trackingState!.error {
+            if let error = trackingState!.take() {
                 throw error
             }
         }

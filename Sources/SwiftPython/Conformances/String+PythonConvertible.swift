@@ -35,7 +35,7 @@ extension Substring: PythonConvertible {
 }
 
 extension StaticString {
-    public func _toPythonObject() throws(PythonError) -> PythonObject {
+    public func convertToPythonObject() throws(PythonError) -> PythonObject {
         let objectRef: UnsafePyObjectRef? = PyUnicode_FromString(_cStringStart)
         guard let objectRef else {
             try PythonError.check()
