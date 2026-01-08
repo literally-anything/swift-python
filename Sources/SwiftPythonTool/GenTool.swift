@@ -58,10 +58,11 @@ struct Gen: ParsableCommand {
 
         let globalFunctions = [
             GlobalFunction(
+                module: nil,
                 name: "hello",
                 signature: FunctionSignature(
-                    arguments: [(label: "text", type: .primitive(.string))],
-                    returnType: .primitive(.int(signed: true, bitWidth: .init(rawValue: Int.bitWidth)!))
+                    arguments: [(label: "text", type: .object(name: "String"), mutable: false)],
+                    returnType: .object(name: "Int")
                 )
             )
         ]

@@ -244,7 +244,7 @@ private func buildMethodsBuffer(
             specifier: .let,
             name: methodNameVar,
             type: "StaticString" as TypeSyntax,
-            value: StringLiteralExprSyntax(content: info.func.name)
+            value: StringLiteralExprSyntax(content: info.func.name.text)
         )
         codeBlock.statements.append(CodeBlockItemSyntax(item: .decl(.init(methodNameDecl))))
 

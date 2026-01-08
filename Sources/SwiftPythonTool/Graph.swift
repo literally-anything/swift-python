@@ -6,14 +6,15 @@
  * Copyright (C) 2025-2025, by Hunter Baker hunterbaker@me.com
  */
 
+import SwiftSyntax
+
 enum PrimitiveType {
-    case none
     case bool
     case int(signed: Bool, bitWidth: IntBitWidth)
     case float(FloatType)
-    case complex
+    // case complex
     case string
-    case bytes(mutable: Bool)
+    // case bytes(mutable: Bool)
 
     enum IntBitWidth: Int {
         case `64` = 64
@@ -26,19 +27,19 @@ enum PrimitiveType {
         case float16
         case float
         case double
-        case longDouble
     }
 }
 
 struct FunctionSignature {
-    var arguments: [(label: String?, type: Type)]
+    var arguments: [(label: String?, type: Type, mutable: Bool)]
     var returnType: Type?
     var errorType: ErrorType? = nil
     var isAsync: Bool = false
 
     enum ErrorType {
         case any
-        case typed(Type)
+        case typed(TokenSyntax)
+        case pyError
     }
 
     var argumentsType: ArgumentsType {
@@ -59,19 +60,30 @@ struct FunctionSignature {
 }
 
 class GlobalFunction {
-    var name: String
+    var module: TokenSyntax?
+    var name: TokenSyntax
     var signature: FunctionSignature
 
-    init(name: String, signature: FunctionSignature) {
+    init(module: TokenSyntax?, name: TokenSyntax, signature: FunctionSignature) {
+        self.module = module
         self.name = name
         self.signature = signature
+    }
+
+    var usedName: TokenSyntax {
+        if let module {
+            "\(module).\(name)"
+        } else {
+            name
+        }
     }
 }
 
 indirect enum Type {
-    case primitive(PrimitiveType)
+    case pyObject
+    case object(name: TokenSyntax)
+    case opaque(conformsTo: [TokenSyntax])
     case tuple([Type])
-    case sequence(Type)
-    case dict(key: Type, value: Type)
     case function(FunctionSignature, escaping: Bool = true)
+    case unsupported(name: String)
 }

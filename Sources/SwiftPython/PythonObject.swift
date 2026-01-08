@@ -10,6 +10,8 @@ public import CPython
 
 /// A raw CPython PyObject reference. This type is not managed, so reference counting must be done manually.
 public typealias UnsafePyObjectRef = UnsafeMutablePointer<PyObject>
+/// A raw CPython PyTypeObject reference. This type is not managed, so reference counting must be done manually.
+public typealias UnsafePyTypeObjectRef = UnsafeMutablePointer<PyTypeObject>
 
 /// Wraps a CPython PyObject and automatically manages python's reference counting.
 /// Allows access to the members of the type using dymanic member lookup.

@@ -1,10 +1,3 @@
-/**
- * PyModule+SwiftPython.swift
- * Example
- * 
- * Created by Hunter Baker on 12/25/2025
- * Copyright (C) 2025-2025, by Hunter Baker hunterbaker@me.com
- */
 import SwiftPython
 import CPython
 import Synchronization

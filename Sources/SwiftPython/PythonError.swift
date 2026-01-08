@@ -6,7 +6,7 @@
  * Copyright (C) 2025-2025, by Hunter Baker hunterbaker@me.com
  */
 
-import CPython
+@preconcurrency import CPython
 
 /// An error that occurred in Python.
 public struct PythonError: Error {
@@ -33,6 +33,55 @@ extension PythonError: CustomStringConvertible, CustomDebugStringConvertible {
     }
 }
 
+// Python exception raising
+extension PythonError {
+    /// The default type for errors thrown in Swift that have no direct exception type in Python
+    internal nonisolated(unsafe) static let swiftException: UnsafePyObjectRef = {
+        return PyErr_NewException("SwiftException", nil, nil)!
+    }()
+
+    /// Raise the `PythonError` in python.
+    /// This sets the error flag, so a function should return back to python with a NULL return value right after calling this.
+    @safe
+    public func raise(file: StaticString = #filePath, line: CInt = #line, col: CInt = #column) {
+        // ToDo: Use actual source location instead of raise location
+
+        let isException: Bool = _PyExceptionInstance_Check(exception.object.pyObject)
+        if isException {
+            PyErr_SetRaisedException(exception.take().take())
+        } else {
+            PyErr_SetObject(PythonError.swiftException, exception.take().take())
+        }
+        PyErr_SyntaxLocationEx(file._cStringStart, line, col)
+    }
+}
+
+// Initialize from Swift errors
+extension PythonError {
+    /// Initialize a `PythonError` from an arbitrary Swift `Error`.
+    /// If the error is not convertable to a `PythonError` or the conversion fails, `None` is passed as the value of the exception.
+    /// - Parameter error: The error to convert into a `PythonError`.
+    public init(_ error: any Error) {
+        let pythonObject: PythonObject?
+        if let error = (error as? any PythonConvertible) {
+            pythonObject = try? error.convertToPythonObject()
+        } else {
+            let str: String = "\(error)"
+            pythonObject = str.isEmpty ? nil : try? str.convertToPythonObject()
+        }
+        self.init(pythonObject ?? PythonObject.none)
+    }
+
+    /// Initialize a `PythonError` from an arbitrary Swift `Error` that conforms to `PythonConvertible`.
+    /// If the conversion fails, `None` is passed as the value of the exception.
+    /// - Parameter error: The error to convert into a `PythonError`.
+    @inlinable
+    public init(_ error: some Error & PythonConvertible) {
+        let pythonObject: PythonObject? = try? error.convertToPythonObject()
+        self.init(pythonObject ?? PythonObject.none)
+    }
+}
+
 extension PythonError {
     /// Check for python errors and throw them if found.
     /// - Throws: A `PythonError` if one is set.
@@ -49,15 +98,11 @@ extension PythonError {
     /// Get a new python `Exception` type with the message "Unknown Error".
     /// This should really never be called. It is a fallback for when no error is found, but something failed.
     public static var unknown: PythonError {
-        PythonError(
-            PythonObject(
-                unsafeUnretained: PyErr_NewException("Unknown Error", nil, nil)
-            )
-        )
+        PythonError(type: PyExc_Exception, message: "Unknown Error")
     }
 
     /// Initialize a `PythonError` using a Python error type and a message.
-    internal init(type: UnsafePyObjectRef!, message: StaticString) {
+    public init(type: UnsafePyObjectRef!, message: StaticString) {
         PyErr_SetString(type, message._cStringStart)
         let error = PythonObject(unsafeUnretained: PyErr_GetRaisedException())
         assert(error != nil, "Python error not set immediately after setting an error. This should never happen.")

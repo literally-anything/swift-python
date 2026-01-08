@@ -13,16 +13,22 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-typedef int (*_PyCModuleExecFunction)(PyObject *module);
+typedef int (*_PyCModuleExecFunction)(PyObject * __nullable module);
 
 SWIFT_INLINE PyModuleDef_Base _get_PyModuleDef_HEAD_INIT() {
     PyModuleDef_Base base = PyModuleDef_HEAD_INIT;
     return base;
+}
+
+SWIFT_INLINE bool _PyExceptionInstance_Check(PyObject * __nullable object) {
+    return PyExceptionInstance_Check(object);
 }
 
 #ifdef __cplusplus
