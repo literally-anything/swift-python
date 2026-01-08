@@ -82,11 +82,190 @@ private func buildGlobalFunctionBody(
     function: GlobalFunction, callingConvention: PyMethodCallingConvention,
     selfParam: TokenSyntax, argsParam: TokenSyntax, nArgsParam: TokenSyntax, kwNamesParam: TokenSyntax
 ) -> CodeBlockSyntax {
-    var codeBlock = CodeBlockSyntax(statements: CodeBlockItemListSyntax())
-
-    guard !function.signature.isAsync, function.signature.errorType == nil else {
-        fatalError("Async and throwing functions are not yet supported")
+    guard !function.signature.isAsync else {
+        fatalError("Async functions are not supported yet")
+    }
+    guard !function.signature.arguments.contains(where: { $0.mutable }) else {
+        fatalError("Functions with inout arguments are not supported yet")
     }
 
-    return codeBlock
+    var argumentBlock: [CodeBlockItemSyntax] = []
+    var returnBlock: [CodeBlockItemSyntax] = []
+    var argumentsThrow: Bool = false
+
+    // Build the basic function call
+    var args: [LabeledExprSyntax] = []
+    switch callingConvention {
+        case .noArguments: break
+        case .singleObject:
+            let argumentParamVar: TokenSyntax = .identifier("argument")
+            argumentBlock.append(
+                CodeBlockItemSyntax(item: .decl(DeclSyntax(
+                    VariableDeclSyntax(
+                        specifier: .let,
+                        name: argumentParamVar,
+                        type: "SwiftPython.PythonObject" as TypeSyntax,
+                        value: "SwiftPython.PythonObject(unsafeUnmanaged: \(argsParam)!)" as ExprSyntax
+                    )
+                )))
+            )
+            switch function.signature.arguments.first!.type {
+                case .pyObject:
+                    args.append(
+                        LabeledExprSyntax(
+                            label: function.signature.arguments.first!.label,
+                            expression: DeclReferenceExprSyntax(baseName: argumentParamVar)
+                        )
+                    )
+                case let .object(name: typeName):
+                    argumentsThrow = true
+                    args.append(
+                        LabeledExprSyntax(
+                            label: function.signature.arguments.first!.label,
+                            expression: TryExprSyntax(expression: "\(typeName)(\(argumentParamVar))" as ExprSyntax)
+                        )
+                    )
+                default: fatalError("parameter type not supported yet: \(function.signature.arguments.first!.type)")
+            }
+        default: break
+    }
+    let callExpr = ExprSyntax(
+        FunctionCallExprSyntax(
+            calledExpression: DeclReferenceExprSyntax(baseName: function.usedName),
+            leftParen: .leftParenToken(),
+            arguments: LabeledExprListSyntax(args),
+            rightParen: .rightParenToken()
+        )
+    )
+    var callBlockItem: CodeBlockItemSyntax
+
+    // Figure out return value
+    if let returnType = function.signature.returnType {
+        // If a return value, bind call result to a variable and convert and return it
+        let returnValueVar: TokenSyntax = .identifier("returnValue")
+        let returnValueDecl = VariableDeclSyntax(
+            specifier: .let,
+            name: returnValueVar,
+            value: callExpr
+        )
+        callBlockItem = CodeBlockItemSyntax(item: .decl(DeclSyntax(returnValueDecl)))
+
+        buildPythonReturn(block: &returnBlock, returnThrows: &argumentsThrow, returnValueVar: returnValueVar, returnType: returnType, function: function)
+    } else {
+        // If no return value, just call it and return a borrowed None ref
+        callBlockItem = CodeBlockItemSyntax(item: .expr(ExprSyntax(callExpr)))
+        let returnStatement = ReturnStmtSyntax(
+            expression: "SwiftPython.PythonObject.none.take()" as ExprSyntax  // Python None object
+        )
+        returnBlock.append(CodeBlockItemSyntax(item: .stmt(StmtSyntax(returnStatement))))
+    }
+
+    callBlockItem = pythonCatch(
+        CodeBlockSyntax(
+            statements: CodeBlockItemListSyntax {
+                callBlockItem
+                for item in returnBlock {
+                    item
+                }
+            }
+        ),
+        throws: argumentsThrow
+    )
+    wrapPythonCall_Throws(callBlockItem: &callBlockItem, signature: function.signature)
+
+    return CodeBlockSyntax(statements: argumentBlock + [callBlockItem])
+}
+
+private func buildPythonReturn(block: inout [CodeBlockItemSyntax], returnThrows: inout Bool, returnValueVar: TokenSyntax, returnType: Type, function: GlobalFunction) {
+    switch returnType {
+        case .object(name: _):
+            block.append(
+                CodeBlockItemSyntax(item: .stmt(StmtSyntax(
+                    ReturnStmtSyntax(expression: buildPythonReturn_Object(returnValueVar: returnValueVar, returnThrows: &returnThrows))
+                )))
+            )
+        // case let .tuple([Type])
+        case .function(_, escaping: _):
+            fatalError("Function return types are not supported yet")
+        case .unsupported(name: _): fallthrough
+        default:
+            fatalError("Unsupported return type to function `\(function.name)`")
+    }
+}
+
+private func buildPythonReturn_Object(returnValueVar: TokenSyntax, returnThrows: inout Bool) -> ExprSyntax {
+    returnThrows = true
+    // Convert to PythonObject and grab the PyObject pointer
+    return "try \(returnValueVar).convertToPythonObject().take()" as ExprSyntax
+}
+
+private func wrapPythonCall_Throws(callBlockItem: inout CodeBlockItemSyntax, signature: FunctionSignature) {
+    if let errorType = signature.errorType {
+        let errorVar: TokenSyntax = .identifier("callError")
+        let throwsClause = switch errorType {
+            case .any: ThrowsClauseSyntax(throwsSpecifier: .keyword(.throws))
+            case .pyError:
+                ThrowsClauseSyntax(
+                    throwsSpecifier: .keyword(.throws),
+                    leftParen: .leftParenToken(),
+                    type: "SwiftPython.PythonError" as TypeSyntax,
+                    rightParen: .rightParenToken()
+                )
+            case let .typed(type):
+                ThrowsClauseSyntax(
+                    throwsSpecifier: .keyword(.throws),
+                    leftParen: .leftParenToken(),
+                    type: "\(type)" as TypeSyntax,
+                    rightParen: .rightParenToken()
+                )
+        }
+
+        callBlockItem = CodeBlockItemSyntax(item: .stmt(StmtSyntax(DoStmtSyntax(
+            throwsClause: throwsClause,
+            body: CodeBlockSyntax(statements: [callBlockItem]),
+            catchClauses: CatchClauseListSyntax {
+                CatchClauseSyntax(
+                    CatchItemListSyntax {
+                        CatchItemSyntax(
+                            pattern: ValueBindingPatternSyntax(
+                                bindingSpecifier: .keyword(.let),
+                                pattern: IdentifierPatternSyntax(identifier: errorVar)
+                            )
+                        )
+                    }
+                ) {
+                    // Convert to PythonError if needed
+                    let pythonErrorVar: TokenSyntax = .identifier("callPyError")
+                    let pythonErrorExpr: ExprSyntax = switch errorType {
+                        case .pyError:
+                            ExprSyntax(DeclReferenceExprSyntax(baseName: errorVar))
+                        default:
+                            "SwiftPython.PythonError(\(errorVar))"
+                    }
+                    CodeBlockItemSyntax(item: .decl(DeclSyntax(
+                        VariableDeclSyntax(
+                            specifier: .let,
+                            name: pythonErrorVar,
+                            type: "SwiftPython.PythonError" as TypeSyntax,
+                            value: pythonErrorExpr
+                        )
+                    )))
+
+                    // Raise the error to python
+                    CodeBlockItemSyntax(item: .expr(ExprSyntax(
+                        FunctionCallExprSyntax(
+                            calledExpression: "\(errorVar).raise" as ExprSyntax,
+                            leftParen: .leftParenToken(),
+                            arguments: LabeledExprListSyntax {},
+                            rightParen: .rightParenToken()
+                        )
+                    )))
+                    // Return nil to indicate error
+                    CodeBlockItemSyntax(item: .stmt(StmtSyntax(
+                        ReturnStmtSyntax(expression: NilLiteralExprSyntax())
+                    )))
+                }
+            }
+        ))))
+    }
 }

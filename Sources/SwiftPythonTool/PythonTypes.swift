@@ -128,3 +128,51 @@ enum PyMethodCallingConvention: ExprSyntax {
         self == .fastCall || self == .fastCallKeywords
     }
 }
+
+/// Wrap a code block in a do-catch that raises PythonErrors to Python
+func pythonCatch(_ block: CodeBlockSyntax, throws: Bool) -> CodeBlockItemSyntax {
+    let errorVar: TokenSyntax = .identifier("error")
+    return CodeBlockItemSyntax(
+        item: CodeBlockItemSyntax.Item.stmt(
+            StmtSyntax(
+                DoStmtSyntax(
+                    throwsClause: `throws` ? ThrowsClauseSyntax(
+                        throwsSpecifier: .keyword(.throws),
+                        leftParen: .leftParenToken(),
+                        type: "SwiftPython.PythonError" as TypeSyntax,
+                        rightParen: .rightParenToken()
+                    ) : nil,
+                    body: block,
+                    catchClauses: CatchClauseListSyntax {
+                        if `throws` {
+                            CatchClauseSyntax(
+                                CatchItemListSyntax {
+                                    CatchItemSyntax(
+                                        pattern: ValueBindingPatternSyntax(
+                                            bindingSpecifier: .keyword(.let),
+                                            pattern: IdentifierPatternSyntax(identifier: errorVar)
+                                        )
+                                    )
+                                }
+                            ) {
+                                // Raise the error to python
+                                CodeBlockItemSyntax(item: .expr(ExprSyntax(
+                                    FunctionCallExprSyntax(
+                                        calledExpression: "\(errorVar).raise" as ExprSyntax,
+                                        leftParen: .leftParenToken(),
+                                        arguments: LabeledExprListSyntax {},
+                                        rightParen: .rightParenToken()
+                                    )
+                                )))
+                                // Return nil to indicate error
+                                CodeBlockItemSyntax(item: .stmt(StmtSyntax(
+                                    ReturnStmtSyntax(expression: NilLiteralExprSyntax())
+                                )))
+                            }
+                        }
+                    }
+                )
+            )
+        )
+    )
+}

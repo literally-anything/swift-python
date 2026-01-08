@@ -57,13 +57,13 @@ extension VariableDeclSyntax {
         attributes: AttributeListSyntax = [],
         specifier: Keyword,
         name: TokenSyntax,
-        type: TypeSyntaxProtocol,
+        type: TypeSyntaxProtocol? = nil,
         value: any ExprSyntaxProtocol
     ) {
         let bindings = PatternBindingListSyntax {
             PatternBindingSyntax(
                 pattern: IdentifierPatternSyntax(identifier: name),
-                typeAnnotation: TypeAnnotationSyntax(type: type),
+                typeAnnotation: type.map { TypeAnnotationSyntax(type: $0) },
                 initializer: InitializerClauseSyntax(value: value)
             )
         }
