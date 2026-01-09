@@ -9,7 +9,11 @@
 import CPython
 
 extension Array: PythonConvertible where Element: PythonConvertible {
-    public init(_ pythonObject: borrowing PythonObject) throws(PythonError) {
+    /// Convert a `PythonObject` to a `Array`.
+    /// This is equivalent to calling `list(object)` in Python.
+    /// - Parameter pythonObject: The python object to use. This does not need to be a `list`, but it must be a sequence.
+    /// - Throws: A `PythonError` if the conversion fails
+    public init(fromPython pythonObject: borrowing PythonObject) throws(PythonError) {
         let length = try pythonObject.count
         var error: PythonError? = nil
         self.init(
@@ -34,6 +38,13 @@ extension Array: PythonConvertible where Element: PythonConvertible {
         if let error {
             throw error
         }
+    }
+
+    public init(_ pythonObject: borrowing PythonObject) throws(PythonError) {
+        guard _PyList_Check(pythonObject.pyObject) else {
+            throw PythonError.badType(real: "\(Self.self)")
+        }
+        try self.init(fromPython: pythonObject)
     }
 
     public borrowing func convertToPythonObject() throws(PythonError) -> PythonObject {

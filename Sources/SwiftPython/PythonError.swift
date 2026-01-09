@@ -82,6 +82,38 @@ extension PythonError {
     }
 }
 
+// Error types
+extension PythonError {
+    /// Get a new python `Exception` type with the message "Unknown Error".
+    /// This should really never be called. It is a fallback for when no error is found, but something failed.
+    public static var unknown: PythonError {
+        PythonError(type: PyExc_Exception, message: "Unknown Error")
+    }
+
+    /// Creates a new python `TypeError` for use when an argument to a function is invalid.
+    /// This is mainly for use in generated bridging code.
+    /// - Parameter message: The error message
+    /// - Returns: The newly built `PythonError`
+    public static func badArgument(_ message: String) -> PythonError {
+        return PythonError(
+            type: PyExc_TypeError,
+            message: message
+        )
+    }
+
+    /// Creates a new python `TypeError` for use when the type of a PythonObject is invalid in a conversion.
+    /// - Parameter real: The name of the type that we are trying to build
+    /// - Returns: The newly built `PythonError`
+    public static func badType(real: String) -> PythonError {
+        return PythonError(
+            type: PyExc_TypeError,
+            message: "Bad type. Could not convert to `\(real)`"
+        )
+    }
+}
+
+// Handling
+
 extension PythonError {
     /// Check for python errors and throw them if found.
     /// - Throws: A `PythonError` if one is set.
@@ -95,15 +127,9 @@ extension PythonError {
         }
     }
 
-    /// Get a new python `Exception` type with the message "Unknown Error".
-    /// This should really never be called. It is a fallback for when no error is found, but something failed.
-    public static var unknown: PythonError {
-        PythonError(type: PyExc_Exception, message: "Unknown Error")
-    }
-
     /// Initialize a `PythonError` using a Python error type and a message.
-    public init(type: UnsafePyObjectRef!, message: StaticString) {
-        PyErr_SetString(type, message._cStringStart)
+    public init(type: UnsafePyObjectRef!, message: String) {
+        PyErr_SetString(type, message)
         let error = PythonObject(unsafeUnretained: PyErr_GetRaisedException())
         assert(error != nil, "Python error not set immediately after setting an error. This should never happen.")
         self.init(error!)

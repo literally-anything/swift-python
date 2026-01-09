@@ -9,13 +9,26 @@
 import CPython
 
 extension Bool: PythonConvertible {
-    public init(_ pythonObject: borrowing PythonObject) throws(PythonError) {
+    /// Convert a `PythonObject` to a `Bool`.
+    /// This is the same as calling `bool(object)` in Python.
+    /// - Parameter pythonObject: The python object to use. This does not need to be a `bool`.
+    /// - Throws: A `PythonError` if the conversion fails
+    public init(fromPython pythonObject: borrowing PythonObject) throws(PythonError) {
         let ret: CInt = PyObject_IsTrue(pythonObject.pyObject)
         guard ret >= 0 else {
             try PythonError.check()
             throw PythonError.unknown
         }
         self = ret == 1
+    }
+
+    public init(_ pythonObject: borrowing PythonObject) throws(PythonError) {
+        // Require a real `bool`
+        guard _PyBool_Check(pythonObject.pyObject) else {
+            throw PythonError.badType(real: "Bool")
+        }
+
+        try self.init(fromPython: pythonObject)
     }
 
     public borrowing func convertToPythonObject() throws(PythonError) -> PythonObject {
