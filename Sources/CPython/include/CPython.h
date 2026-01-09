@@ -31,6 +31,22 @@ SWIFT_INLINE bool _PyExceptionInstance_Check(PyObject * __nullable object) {
     return PyExceptionInstance_Check(object);
 }
 
+SWIFT_INLINE bool _PyBool_Check(PyObject * __nullable object) {
+    return PyBool_Check(object);
+}
+SWIFT_INLINE bool _PyLong_Check(PyObject * __nullable object) {
+    return PyLong_Check(object);
+}
+SWIFT_INLINE bool _PyFloat_Check(PyObject * __nullable object) {
+    return PyFloat_Check(object);
+}
+SWIFT_INLINE bool _PyUnicode_Check(PyObject * __nullable object) {
+    return PyUnicode_Check(object);
+}
+SWIFT_INLINE bool _PyList_Check(PyObject * __nullable object) {
+    return PyList_Check(object);
+}
+
 #ifdef __cplusplus
 }
 #endif

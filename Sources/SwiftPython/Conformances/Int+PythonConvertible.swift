@@ -9,14 +9,27 @@
 import CPython
 
 extension FixedWidthInteger {
-    public init(_ pythonObject: borrowing PythonObject) throws(PythonError) {
+    /// Convert a `PythonObject` to a `FixedWidthInteger`.
+    /// This is the same as calling `int(object)` in Python.
+    /// - Parameter pythonObject: The python object to use. This does not need to be a `int`.
+    /// - Throws: A `PythonError` if the conversion fails
+    public init(fromPython pythonObject: borrowing PythonObject) throws(PythonError) {
         let numberRef: UnsafePyObjectRef? = PyNumber_Long(pythonObject.pyObject)
         guard let numberRef else {
             try PythonError.check()
             throw PythonError.unknown
         }
-        let number: Py_ssize_t = PyNumber_AsSsize_t(numberRef, nil)
-        self = .init(number)
+        try self.init(PythonObject(unsafeUnretained: numberRef))
+    }
+
+    public init(_ pythonObject: borrowing PythonObject) throws(PythonError) {
+        guard _PyLong_Check(pythonObject.pyObject) else {
+            throw PythonError.badType(real: "\(Self.self)")
+        }
+
+        let number: CLong = PyLong_AsLong(pythonObject.pyObject)
+        try PythonError.check()
+        self = Self(number)
     }
 }
 
