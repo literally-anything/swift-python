@@ -6,9 +6,38 @@
  * Copyright (C) 2025-2025, by Hunter Baker hunter@literallyanything.net
  */
 
-import CPython
+@preconcurrency import CPython
 
-extension FixedWidthInteger {
+@usableFromInline
+internal func _pyLongToInt64(_ ref: UnsafePyObjectRef) throws(PythonError) -> Int64? {
+    guard _PyLong_Check(ref) else {
+        return nil
+    }
+
+    var number: Int64 = 0
+    let ret: CInt = PyLong_AsInt64(ref, &number)
+    guard ret == 0 else {
+        try PythonError.check()
+        throw PythonError.unknown
+    }
+    return number
+}
+@usableFromInline
+internal func _pyLongToUInt64(_ ref: UnsafePyObjectRef) throws(PythonError) -> UInt64? {
+    guard _PyLong_Check(ref) else {
+        return nil
+    }
+
+    var number: UInt64 = 0
+    let ret: CInt = PyLong_AsUInt64(ref, &number)
+    guard ret == 0 else {
+        try PythonError.check()
+        throw PythonError.unknown
+    }
+    return number
+}
+
+extension FixedWidthInteger where Self: PythonConvertible {
     /// Convert a `PythonObject` to a `FixedWidthInteger`.
     /// This is the same as calling `int(object)` in Python.
     /// - Parameter pythonObject: The python object to use. This does not need to be a `int`.
@@ -21,14 +50,38 @@ extension FixedWidthInteger {
         }
         try self.init(PythonObject(unsafeUnretained: numberRef))
     }
+}
 
+extension SignedInteger where Self: FixedWidthInteger & PythonConvertible {
+    @inlinable
     public init(_ pythonObject: borrowing PythonObject) throws(PythonError) {
-        guard _PyLong_Check(pythonObject.pyObject) else {
+        let number: Int64? = try _pyLongToInt64(pythonObject._unsafePyObjectRef)
+        guard let number else {
             throw PythonError.badType(real: "\(Self.self)")
         }
 
-        let number: CLong = PyLong_AsLong(pythonObject.pyObject)
-        try PythonError.check()
+        let validRange: Range<Int64> = Int64(Self.min)..<Int64(Self.max)
+        guard validRange.contains(number) else {
+            throw PythonError(type: PyExc_OverflowError, message: "\(number) too large to convert to \(Self.self)")
+        }
+
+        self = Self(number)
+    }
+}
+
+extension UnsignedInteger where Self: FixedWidthInteger & PythonConvertible {
+    @inlinable
+    public init(_ pythonObject: borrowing PythonObject) throws(PythonError) {
+        let number: UInt64? = try _pyLongToUInt64(pythonObject._unsafePyObjectRef)
+        guard let number else {
+            throw PythonError.badType(real: "\(Self.self)")
+        }
+
+        let validRange: Range<UInt64> = UInt64(Self.min)..<UInt64(Self.max)
+        guard validRange.contains(number) else {
+            throw PythonError(type: PyExc_OverflowError, message: "\(number) too large to convert to \(Self.self)")
+        }
+
         self = Self(number)
     }
 }

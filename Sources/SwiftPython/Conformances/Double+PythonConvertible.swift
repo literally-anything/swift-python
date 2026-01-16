@@ -8,7 +8,18 @@
 
 import CPython
 
-extension BinaryFloatingPoint {
+@usableFromInline
+internal func _pyFloatToDouble(_ ref: UnsafePyObjectRef) throws(PythonError) -> Double? {
+    guard _PyFloat_Check(ref) else {
+        return nil
+    }
+
+    let doubleValue: Double = PyFloat_AsDouble(ref)
+    try PythonError.check()
+    return doubleValue
+}
+
+extension BinaryFloatingPoint where Self: PythonConvertible {
     /// Convert a `PythonObject` to a `BinaryFloatingPoint`.
     /// This is the same as calling `float(object)` in Python.
     /// - Parameter pythonObject: The python object to use. This does not need to be a `float`.
@@ -22,13 +33,12 @@ extension BinaryFloatingPoint {
         try self.init(PythonObject(unsafeUnretained: floatRef))
     }
 
+    @inlinable
     public init(_ pythonObject: borrowing PythonObject) throws(PythonError) {
-        guard _PyFloat_Check(pythonObject.pyObject) else {
+        let doubleValue: Double? = try _pyFloatToDouble(pythonObject._unsafePyObjectRef)
+        guard let doubleValue else {
             throw PythonError.badType(real: "\(Self.self)")
         }
-
-        let doubleValue: Double = PyFloat_AsDouble(pythonObject.pyObject)
-        try PythonError.check()
         self = Self(doubleValue)
     }
 }
