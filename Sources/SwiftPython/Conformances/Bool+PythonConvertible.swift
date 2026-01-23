@@ -43,6 +43,6 @@ extension Bool: PythonConvertible {
             try PythonError.check()
             throw PythonError.unknown
         }
-        return PythonObject(unsafeUnretained: boolRef)
+        return PythonObject(fromOwned: boolRef)
     }
 }

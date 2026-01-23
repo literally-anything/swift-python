@@ -38,21 +38,21 @@ public struct PythonInterpreter: SendableMetatype {
         ensureInitialized()
         let builtinsRef: UnsafePyObjectRef? = PyEval_GetFrameBuiltins()
         try? PythonError.check() // ToDo: Replace with a throwing getter when those work with noncopyable types.
-        return PythonObject(unsafeUnretained: builtinsRef)
+        return unsafe PythonObject(fromOwned: builtinsRef)
     }
     /// The mutable interpreter globals.
     public static var globals: PythonObject? {
         ensureInitialized()
         let globalsRef: UnsafePyObjectRef? = PyEval_GetFrameGlobals()
         try? PythonError.check() // ToDo: Replace with a throwing getter when those work with noncopyable types.
-        return PythonObject(unsafeUnretained: globalsRef)
+        return unsafe PythonObject(fromOwned: globalsRef)
     }
     /// The mutable interpreter locals.
     public static var locals: PythonObject? {
         ensureInitialized()
         let localsRef: UnsafePyObjectRef? = PyEval_GetFrameLocals()
         try? PythonError.check() // ToDo: Replace with a throwing getter when those work with noncopyable types.
-        return PythonObject(unsafeUnretained: localsRef)
+        return unsafe PythonObject(fromOwned: localsRef)
     }
 
     /// Imports the specified python module and returns its module object.
@@ -65,7 +65,7 @@ public struct PythonInterpreter: SendableMetatype {
             try PythonError.check()
             throw PythonError.unknown
         }
-        return unsafe PythonObject(unsafeUnretained: moduleRef)
+        return unsafe PythonObject(fromOwned: moduleRef)
     }
 
     /// The mode to use when running a python string.
@@ -109,7 +109,7 @@ public struct PythonInterpreter: SendableMetatype {
             try PythonError.check()
             throw PythonError.unknown
         }
-        let returnValue = PythonObject(unsafeUnretained: returnRef)
+        let returnValue = unsafe PythonObject(fromOwned: returnRef)
         if returnValue.isNone {
             return nil
         } else {

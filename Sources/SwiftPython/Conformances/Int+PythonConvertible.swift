@@ -48,7 +48,7 @@ extension FixedWidthInteger where Self: PythonConvertible {
             try PythonError.check()
             throw PythonError.unknown
         }
-        try self.init(PythonObject(unsafeUnretained: numberRef))
+        try self.init(PythonObject(fromOwned: numberRef))
     }
 }
 
@@ -115,7 +115,7 @@ extension Int32: PythonConvertible {
             try PythonError.check()
             throw PythonError.unknown
         }
-        return PythonObject(unsafeUnretained: ref)
+        return PythonObject(fromOwned: ref)
     }
 }
 extension UInt32: PythonConvertible {
@@ -125,7 +125,7 @@ extension UInt32: PythonConvertible {
             try PythonError.check()
             throw PythonError.unknown
         }
-        return PythonObject(unsafeUnretained: ref)
+        return PythonObject(fromOwned: ref)
     }
 }
 
@@ -136,7 +136,7 @@ extension Int64: PythonConvertible {
             try PythonError.check()
             throw PythonError.unknown
         }
-        return PythonObject(unsafeUnretained: ref)
+        return PythonObject(fromOwned: ref)
     }
 }
 extension UInt64: PythonConvertible {
@@ -146,7 +146,7 @@ extension UInt64: PythonConvertible {
             try PythonError.check()
             throw PythonError.unknown
         }
-        return PythonObject(unsafeUnretained: ref)
+        return PythonObject(fromOwned: ref)
     }
 }
 
@@ -162,7 +162,7 @@ extension Int: PythonConvertible {
             try PythonError.check()
             throw PythonError.unknown
         }
-        return PythonObject(unsafeUnretained: ref)
+        return PythonObject(fromOwned: ref)
     }
 }
 extension UInt: PythonConvertible {
@@ -177,6 +177,6 @@ extension UInt: PythonConvertible {
             try PythonError.check()
             throw PythonError.unknown
         }
-        return PythonObject(unsafeUnretained: ref)
+        return PythonObject(fromOwned: ref)
     }
 }

@@ -30,7 +30,7 @@ extension BinaryFloatingPoint where Self: PythonConvertible {
             try PythonError.check()
             throw PythonError.unknown
         }
-        try self.init(PythonObject(unsafeUnretained: floatRef))
+        try self.init(PythonObject(fromOwned: floatRef))
     }
 
     @inlinable
@@ -62,6 +62,6 @@ extension Double: PythonConvertible {
             try PythonError.check()
             throw PythonError.unknown
         }
-        return PythonObject(unsafeUnretained: floatRef)
+        return PythonObject(fromOwned: floatRef)
     }
 }

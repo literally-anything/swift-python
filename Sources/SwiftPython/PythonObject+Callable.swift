@@ -42,7 +42,7 @@ extension PythonObject.Callable {
     @discardableResult
     public func call() throws(PythonError) -> PythonObject? {
         let returnRef: UnsafePyObjectRef? = PyObject_CallNoArgs(pyObject)
-        let returnValue: PythonObject? = PythonObject(unsafeUnretained: returnRef)
+        let returnValue: PythonObject? = unsafe PythonObject(fromOwned: returnRef)
         guard let returnValue else {
             try PythonError.check()
             throw PythonError.unknown
@@ -60,7 +60,7 @@ extension PythonObject.Callable {
     @discardableResult
     public func call(argument: inout PythonObject) throws(PythonError) -> PythonObject? {
         let returnRef: UnsafePyObjectRef? = PyObject_CallOneArg(pyObject, argument.pyObject)
-        let returnValue: PythonObject? = PythonObject(unsafeUnretained: returnRef)
+        let returnValue: PythonObject? = unsafe PythonObject(fromOwned: returnRef)
         guard let returnValue else {
             try PythonError.check()
             throw PythonError.unknown
@@ -135,7 +135,7 @@ extension PythonObject.Callable {
         let returnRef = argumentRefs.span.withUnsafeBufferPointer { argumentsBuffer in
             PyObject_Vectorcall(pyObject, argumentsBuffer.baseAddress, arguments.count, keywordsTuple.pyObject)
         }
-        let returnValue: PythonObject? = PythonObject(unsafeUnretained: returnRef)
+        let returnValue: PythonObject? = unsafe PythonObject(fromOwned: returnRef)
         guard let returnValue else {
             try PythonError.check()
             throw PythonError.unknown

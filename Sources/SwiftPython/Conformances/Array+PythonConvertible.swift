@@ -26,7 +26,7 @@ extension Array: PythonConvertible where Element: PythonConvertible {
                         try PythonError.check()
                         throw PythonError.unknown
                     }
-                    let item = PythonObject(unsafeUnretained: itemRef)
+                    let item = PythonObject(fromOwned: itemRef)
                     buffer[Int(index)] = try Element(item)
                 }
             } catch let e {
@@ -53,7 +53,7 @@ extension Array: PythonConvertible where Element: PythonConvertible {
             try PythonError.check()
             throw PythonError.unknown
         }
-        let list: PythonObject = PythonObject(unsafeUnretained: listRef)
+        let list: PythonObject = PythonObject(fromOwned: listRef)
 
         for (index, item) in enumerated() {
             let pyItem = try item.convertToPythonObject()

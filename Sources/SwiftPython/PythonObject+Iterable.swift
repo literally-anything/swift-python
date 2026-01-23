@@ -34,7 +34,7 @@ public struct PythonObjectIterator<Element: PythonConvertible & Copyable>: Itera
                 try PythonError.check()
             }
 
-            let nextObject = PythonObject(unsafeUnretained: nextRef)
+            let nextObject = unsafe PythonObject(fromOwned: nextRef)
             if ret == 1, let nextObject {
                 return nextObject
             }
@@ -55,7 +55,7 @@ public struct PythonObjectIterator<Element: PythonConvertible & Copyable>: Itera
             self.box = IterableBox(iterable.copy())
         } else {
             let iteratorRef: UnsafePyObjectRef? = PyObject_GetIter(iterable.pyObject)
-            let iterator: PythonObject? = PythonObject(unsafeUnretained: iteratorRef)
+            let iterator: PythonObject? = unsafe PythonObject(fromOwned: iteratorRef)
             guard let iterator else {
                 try PythonError.check()
                 throw PythonError(type: PyExc_TypeError, message: "The PythonObject is not iterable")

@@ -23,8 +23,15 @@ public struct PythonObject: @unchecked Sendable, ~Copyable {
     /// The raw CPython PyObject pointer.
     /// - Note: This is only a valid reference while this `PythonObject` stays alive. Use `withExtendedLifetime` to extend it until you are done using `pyObject`.
     @unsafe
-    @usableFromInline
     internal let pyObject: UnsafePyObjectRef
+
+    /// The raw CPython PyObject pointer.
+    /// This is only intended to be used in generated bindings.
+    /// - Note: This is only a valid reference while this `PythonObject` stays alive. Use `withExtendedLifetime` to extend it until you are done using `pyObject`.
+    @unsafe
+    public var _unsafePyObjectRef: UnsafePyObjectRef {
+        return pyObject
+    }
 
     /// Whether the reference count will be decremented on deinit.
     private let managed: Bool
@@ -32,7 +39,7 @@ public struct PythonObject: @unchecked Sendable, ~Copyable {
     /// Initialize a `PythonObject` by retaining a CPython PyObject pointer.
     /// This increments the reference count of the provided `pyObject`.
     /// - Parameter pyObject: The CPython PyObject reference to retain.
-    @safe
+    @unsafe
     public init(retaining pyObject: UnsafePyObjectRef) {
         unsafe Py_INCREF(pyObject)
         unsafe self.pyObject = pyObject
@@ -41,9 +48,9 @@ public struct PythonObject: @unchecked Sendable, ~Copyable {
     /// Initialize a `PythonObject` by retaining a CPython PyObject pointer.
     /// This increments the reference count of the provided `pyObject`.
     /// - Parameter pyObject: The CPython PyObject reference to retain.
-    @safe
+    @unsafe
     public init?(retaining pyObject: UnsafePyObjectRef?) {
-        guard let pyObject else {
+        guard let pyObject = unsafe pyObject else {
             return nil
         }
         self.init(retaining: pyObject)
@@ -54,7 +61,7 @@ public struct PythonObject: @unchecked Sendable, ~Copyable {
     /// - Warning: The `PythonObject` will still decrement the reference count when it goes out of scope, so the reference count must have been incremented before calling this.
     /// - Parameter pyObject: The CPython PyObject reference.
     @unsafe
-    public init(unsafeUnretained pyObject: UnsafePyObjectRef) {
+    public init(fromOwned pyObject: UnsafePyObjectRef) {
         unsafe self.pyObject = pyObject
         self.managed = true
     }
@@ -63,20 +70,30 @@ public struct PythonObject: @unchecked Sendable, ~Copyable {
     /// - Warning: The `PythonObject` will still decrement the reference count when it goes out of scope, so the reference count must have been incremented before calling this.
     /// - Parameter pyObject: The CPython PyObject reference.
     @unsafe
-    public init?(unsafeUnretained pyObject: UnsafePyObjectRef?) {
-        guard let pyObject else {
+    public init?(fromOwned pyObject: UnsafePyObjectRef?) {
+        guard let pyObject = unsafe pyObject else {
             return nil
         }
-        unsafe self.init(unsafeUnretained: pyObject)
+        unsafe self.init(fromOwned: pyObject)
     }
 
     /// Initialize using an already retained PyObject reference without managing the reference count.
     /// - Warning: This does not release the reference on deinit.
     /// - Parameter pyObject: An immortal or borrowed PyObject reference that will not be managed.
     @unsafe
-    public init(unsafeUnmanaged pyObject: UnsafePyObjectRef) {
+    public init(borrowing pyObject: UnsafePyObjectRef) {
         unsafe self.pyObject = pyObject
         self.managed = false
+    }
+    /// Initialize using an already retained PyObject reference without managing the reference count.
+    /// - Warning: This does not release the reference on deinit.
+    /// - Parameter pyObject: An immortal or borrowed PyObject reference that will not be managed.
+    @unsafe
+    public init?(borrowing pyObject: UnsafePyObjectRef?) {
+        guard let pyObject = unsafe pyObject else {
+            return nil
+        }
+        unsafe self.init(borrowing: pyObject)
     }
 
     deinit {
@@ -93,11 +110,7 @@ extension PythonObject {
     /// - Returns: A retained copy of this reference.
     @safe
     public func copy() -> PythonObject {
-        if managed {
-            PythonObject(retaining: unsafe pyObject)
-        } else {
-            unsafe PythonObject(unsafeUnmanaged: pyObject)
-        }
+        unsafe PythonObject(retaining: pyObject)
     }
 
     /// Take the raw CPython PyObject reference and consume `self`.
@@ -140,7 +153,7 @@ extension PythonObject {//: CustomStringConvertible, CustomDebugStringConvertibl
             try PythonError.check()
             throw PythonError.unknown
         }
-        let strObject: PythonObject = PythonObject(unsafeUnretained: strObjectRef)
+        let strObject: PythonObject = PythonObject(fromOwned: strObjectRef)
 
         let cString: UnsafePointer<CChar>? = PyUnicode_AsUTF8AndSize(strObject.pyObject, nil)
         guard let cString else {
@@ -157,7 +170,7 @@ extension PythonObject {//: CustomStringConvertible, CustomDebugStringConvertibl
             try PythonError.check()
             throw PythonError.unknown
         }
-        let strObject: PythonObject = PythonObject(unsafeUnretained: strObjectRef)
+        let strObject: PythonObject = PythonObject(fromOwned: strObjectRef)
 
         let cString: UnsafePointer<CChar>? = PyUnicode_AsUTF8AndSize(strObject.pyObject, nil)
         guard let cString else {
@@ -199,11 +212,11 @@ extension String {
 extension PythonObject {
     /// Checks if this python object is a reference to `None`.
     public var isNone: Bool {
-        unsafe pyObject == Py_GetConstantBorrowed(0) // None constant
+        unsafe pyObject == Py_GetConstantBorrowed(UInt32(Py_CONSTANT_NONE)) // None constant
     }
-    /// Get python `None`.
+    /// Get the Python `None` constant.
     public static var none: PythonObject {
-        unsafe PythonObject(unsafeUnmanaged: Py_GetConstantBorrowed(0)) // None constant
+        unsafe PythonObject(borrowing: Py_GetConstantBorrowed(UInt32(Py_CONSTANT_NONE))) // None constant
     }
 }
 
@@ -234,7 +247,7 @@ extension PythonObject {
             try PythonError.check()
             throw PythonError.unknown
         }
-        return PythonObject(unsafeUnretained: ref)
+        return PythonObject(fromOwned: ref)
     }
 
     public func hash() throws(PythonError) -> Py_hash_t {

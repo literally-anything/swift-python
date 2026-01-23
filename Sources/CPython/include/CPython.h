@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <stddef.h>
 #define SWIFT_INLINE [[maybe_unused]] static inline __attribute__((__always_inline__))
 
 #define PY_SSIZE_T_CLEAN
@@ -18,7 +19,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 typedef int (*_PyCModuleExecFunction)(PyObject * __nullable module);
 

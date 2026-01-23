@@ -24,7 +24,15 @@ func findExecutableInPath(executableName: String) -> String? {
 }
 
 func findPythonInfo() -> (cFlags: [String], linkerFlags: [String], extSuffix: String, versionStr: String)? {
-    let pythonConfigExecutable = findExecutableInPath(executableName: "python3-config")
+    let executablePath: String? = ProcessInfo.processInfo.environment["SWIFTPYTHON_PY_PATH"]
+    let pythonConfigExecutable: String?
+    if let executablePath {
+        // Check if it is the name of the executable in PATH, otherwise, use it directly as the path
+        pythonConfigExecutable = findExecutableInPath(executableName: executablePath) ?? executablePath
+    } else {
+        // By default, use the first `python3-config` executable in PATH (not free-threaded)
+        pythonConfigExecutable = findExecutableInPath(executableName: "python3-config")
+    }
     guard let pythonConfigExecutable else {
         return nil
     }
@@ -105,9 +113,11 @@ let swiftArgs: [SwiftSetting] = [
     .interoperabilityMode(.Cxx)
 ]
 var cArgs: [CSetting] = [
-    .unsafeFlags(["-Wno-module-import-in-extern-c"])
+    .unsafeFlags(["-fapinotes-modules"])
 ]
-var cxxArgs: [CXXSetting] = []
+var cxxArgs: [CXXSetting] = [
+    .unsafeFlags(["-Wno-module-import-in-extern-c", "-fapinotes-modules"])
+]
 var linkerArgs: [LinkerSetting] = []
 
 if let pythonInfo = findPythonInfo() {
@@ -121,6 +131,8 @@ if let pythonInfo = findPythonInfo() {
     }
 
     linkerArgs.append(.linkedLibrary("python\(pythonInfo.versionStr)"))
+} else {
+    fatalError("Failed to find a python install. `python-config` must be in PATH.")
 }
 
 let package = Package(
@@ -138,7 +150,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
         .package(url: "https://github.com/swiftlang/swift-syntax", from: "602.0.0"),
-        .package(url: "https://github.com/apple/swift-docc-symbolkit.git", branch: "main"),
+        .package(url: "https://github.com/swiftlang/swift-docc-symbolkit.git", branch: "main"),
         .package(url: "https://github.com/apple/swift-collections.git", from: "1.3.0")
     ],
     targets: [

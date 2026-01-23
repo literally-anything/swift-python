@@ -55,7 +55,7 @@ extension PythonObject {
                     return nil
                 }
                 // The object ref is a new strong reference, so it is already retained.
-                return PythonObject(unsafeUnretained: attributeObjectRef)
+                return unsafe PythonObject(fromOwned: attributeObjectRef)
             }
             nonmutating set(newValue) {
                 let ret: CInt
@@ -84,7 +84,7 @@ extension PythonObject {
                     return nil
                 }
                 // The object ref is a new strong reference, so it is already retained.
-                return PythonObject(unsafeUnretained: attributeObjectRef)
+                return unsafe PythonObject(fromOwned: attributeObjectRef)
             }
         }
 
@@ -98,7 +98,7 @@ extension PythonObject {
                     return PythonObject.none
                 }
                 // The object ref is a new strong reference, so it is already retained.
-                return PythonObject(unsafeUnretained: attributeObjectRef)
+                return unsafe PythonObject(fromOwned: attributeObjectRef)
             }
         }
         /// Get the `PythonObject` for the specified attribute and report an error if not found.
@@ -115,7 +115,7 @@ extension PythonObject {
                     return PythonObject.none
                 }
                 // The object ref is a new strong reference, so it is already retained.
-                return PythonObject(unsafeUnretained: attributeObjectRef)
+                return unsafe PythonObject(fromOwned: attributeObjectRef)
             }
         }
     }
@@ -166,7 +166,7 @@ extension PythonObject {
                     return nil
                 }
                 // The object ref is a new strong reference, so it is already retained.
-                return PythonObject(unsafeUnretained: attributeObjectRef)
+                return unsafe PythonObject(fromOwned: attributeObjectRef)
             }
 
             @_lifetime(self: copy self)
@@ -197,7 +197,7 @@ extension PythonObject {
                     return nil
                 }
                 // The object ref is a new strong reference, so it is already retained.
-                return PythonObject(unsafeUnretained: attributeObjectRef)
+                return unsafe PythonObject(fromOwned: attributeObjectRef)
             }
 
             @_lifetime(self: copy self)
@@ -205,7 +205,7 @@ extension PythonObject {
                 let ret: CInt
                 if let newValue {
                     ret = attributeName.withCString { attributeNameStr in
-                        PyObject_SetAttrString(pyObject, attributeNameStr, newValue.pyObject)
+                        PyObject_SetAttrString(pyObject, attributeNameStr, newValue._unsafePyObjectRef)
                     }
                 } else {
                     ret = attributeName.withCString { attributeNameStr in
@@ -228,7 +228,7 @@ extension PythonObject {
                     return PythonObject.none
                 }
                 // The object ref is a new strong reference, so it is already retained.
-                return PythonObject(unsafeUnretained: attributeObjectRef)
+                return unsafe PythonObject(fromOwned: attributeObjectRef)
             }
         }
         /// Get the `PythonObject` for the specified attribute and report an error if not found.
@@ -245,7 +245,7 @@ extension PythonObject {
                     return PythonObject.none
                 }
                 // The object ref is a new strong reference, so it is already retained.
-                return PythonObject(unsafeUnretained: attributeObjectRef)
+                return unsafe PythonObject(fromOwned: attributeObjectRef)
             }
         }
     }

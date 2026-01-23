@@ -8,19 +8,36 @@
 
 @preconcurrency import CPython
 
+/// A shared reference to a python object. This is used to encapsulate a noncopyable `PythonObject` type inside a `Copyable` type.
+/// This is supposed to be a temporary fix until more protocols and features support noncopyable types.
+internal final class SharedPythonObject: @unchecked Sendable {
+    var object: PythonObject
+
+    /// Initialize a `SharedPythonObject` with an existing `PythonObject`.
+    /// - Parameter object: An existing `PythonObject`.
+    init(_ object: consuming PythonObject) {
+        self.object = object
+    }
+}
+
 /// An error that occurred in Python.
 public struct PythonError: Error {
-    /// The underlying python exception object.
-    public let exception: SharedPythonObject
+    /// The shared storage for the underlying Python exception object.
+    internal let sharedObject: SharedPythonObject
 
-    /// Initialize a `PythonError` from a `SharedPythonObject`.
-    /// - Note: May be removed in the future if `SharedPythonObject` goes away.
-    public init(_ exception: SharedPythonObject) {
-        self.exception = exception
+    /// The underlying python exception object.
+    public var exception: PythonObject {
+        _read {
+            yield sharedObject.object
+        }
+        _modify {
+            yield &sharedObject.object
+        }
     }
+
     /// Initialize a `PythonError` from a `PythonObject`.
     public init(_ exception: consuming PythonObject) {
-        self.exception = SharedPythonObject(exception)
+        self.sharedObject = SharedPythonObject(exception)
     }
 }
 
@@ -36,6 +53,7 @@ extension PythonError: CustomStringConvertible, CustomDebugStringConvertible {
 // Python exception raising
 extension PythonError {
     /// The default type for errors thrown in Swift that have no direct exception type in Python
+    /// ToDo: Figure this out...
     internal nonisolated(unsafe) static let swiftException: UnsafePyObjectRef = {
         return PyErr_NewException("SwiftException", nil, nil)!
     }()
@@ -46,11 +64,11 @@ extension PythonError {
     public func raise(file: StaticString = #filePath, line: CInt = #line, col: CInt = #column) {
         // ToDo: Use actual source location instead of raise location
 
-        let isException: Bool = _PyExceptionInstance_Check(exception.object.pyObject)
+        let isException: Bool = _PyExceptionInstance_Check(exception.pyObject)
         if isException {
-            PyErr_SetRaisedException(exception.take().take())
+            PyErr_SetRaisedException(exception.copy().take())
         } else {
-            PyErr_SetObject(PythonError.swiftException, exception.take().take())
+            PyErr_SetObject(PythonError.swiftException, exception.copy().take())
         }
         PyErr_SyntaxLocationEx(file._cStringStart, line, col)
     }
@@ -112,6 +130,28 @@ extension PythonError {
     }
 }
 
+// Error atributes
+extension PythonError {
+    /// The Python exception `__cause__` value.
+    /// Represents the error that caused this error.
+    public var cause: PythonError? {
+        get {
+            let causeExcRef: UnsafePyObjectRef? = PyException_GetContext(exception.pyObject)
+            let causeExc: PythonObject? = PythonObject(fromOwned: causeExcRef)
+            if let causeExc {
+                return PythonError(causeExc)
+            } else {
+                return nil
+            }
+        }
+        borrowing set(newValue) {
+            if _PyExceptionInstance_Check(exception.pyObject) {
+                PyException_SetContext(exception.pyObject, newValue?.exception.copy().take())
+            }
+        }
+    }
+}
+
 // Handling
 
 extension PythonError {
@@ -122,7 +162,7 @@ extension PythonError {
 
         let exceptionRef: UnsafePyObjectRef? = unsafe PyErr_GetRaisedException()
         if let exceptionRef {
-            let exception: PythonObject = PythonObject(unsafeUnretained: exceptionRef)
+            let exception: PythonObject = PythonObject(fromOwned: exceptionRef)
             throw PythonError(exception)
         }
     }
@@ -130,7 +170,7 @@ extension PythonError {
     /// Initialize a `PythonError` using a Python error type and a message.
     public init(type: UnsafePyObjectRef!, message: String) {
         PyErr_SetString(type, message)
-        let error = PythonObject(unsafeUnretained: PyErr_GetRaisedException())
+        let error = PythonObject(fromOwned: PyErr_GetRaisedException())
         assert(error != nil, "Python error not set immediately after setting an error. This should never happen.")
         self.init(error!)
     }

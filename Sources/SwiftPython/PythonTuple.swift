@@ -15,7 +15,7 @@ public func pythonTuple(from arguments: consuming RigidArray<PythonObject>) thro
         try PythonError.check()
         throw PythonError.unknown
     }
-    let tuple = PythonObject(unsafeUnretained: tupleRef)
+    let tuple = PythonObject(fromOwned: tupleRef)
     for index in arguments.indices.reversed() {
         let argument = arguments.remove(at: index)
         // PyTuple_SetItem steals the argument reference, so we take it here to avoid deallocating
@@ -29,7 +29,7 @@ public func pythonTuple(from arguments: consuming RigidArray<PythonObject>) thro
 }
 
 @_disfavoredOverload
-public func pythonTuple(from arguments: consuming RigidArray<any PythonConvertible & ~Copyable>) throws(PythonError) -> PythonObject {
+public func pythonTuple(from arguments: consuming RigidArray<any ~Copyable & PythonConvertible>) throws(PythonError) -> PythonObject {
     let pythonArguments: RigidArray<PythonObject> = try RigidArray<PythonObject>(
         capacity: arguments.count
     ) { (contents) throws(PythonError) -> Void in
@@ -54,11 +54,16 @@ public func pythonTuple(from arguments: [any PythonConvertible]) throws(PythonEr
 }
 
 @inlinable
-@_disfavoredOverload
-public func pythonTuple<each T: PythonConvertible>(_ arguments: repeat each T) throws(PythonError) -> PythonObject {
-    var argumentsArray: [any PythonConvertible] = []
+public func pythonTuple<each T: Copyable & PythonConvertible>(_ arguments: (repeat each T)) throws(PythonError) -> PythonObject {
+    // ToDo: Find a way to determine the size of the parameter pack without reflection
+    var argumentsArray = UniqueArray<PythonObject>()
     for argument in repeat each arguments {
-        argumentsArray.append(argument)
+        argumentsArray.append(try argument.convertToPythonObject())
     }
-    return try pythonTuple(from: argumentsArray)
+    return try pythonTuple(from: RigidArray(consuming: argumentsArray))
+}
+
+@inlinable
+public func pythonTuple<each T: Copyable & PythonConvertible>(_ arguments: repeat each T) throws(PythonError) -> PythonObject {
+    return try pythonTuple((repeat each arguments))
 }

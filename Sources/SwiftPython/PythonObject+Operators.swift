@@ -66,7 +66,7 @@ extension PythonObject {
             PythonError.checkTracked()
             return .none
         }
-        return PythonObject(unsafeUnretained: outputRef)
+        return unsafe PythonObject(fromOwned: outputRef)
     }
     public static func - (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> PythonObject {
         let outputRef: UnsafePyObjectRef? = PyNumber_Subtract(lhs.pyObject, rhs.pyObject)
@@ -74,7 +74,7 @@ extension PythonObject {
             PythonError.checkTracked()
             return .none
         }
-        return PythonObject(unsafeUnretained: outputRef)
+        return unsafe PythonObject(fromOwned: outputRef)
     }
     public static func * (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> PythonObject {
         let outputRef: UnsafePyObjectRef? = PyNumber_Multiply(lhs.pyObject, rhs.pyObject)
@@ -82,7 +82,7 @@ extension PythonObject {
             PythonError.checkTracked()
             return .none
         }
-        return PythonObject(unsafeUnretained: outputRef)
+        return unsafe PythonObject(fromOwned: outputRef)
     }
     public static func matMult(lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> PythonObject {
         let outputRef: UnsafePyObjectRef? = PyNumber_MatrixMultiply(lhs.pyObject, rhs.pyObject)
@@ -90,7 +90,7 @@ extension PythonObject {
             PythonError.checkTracked()
             return .none
         }
-        return PythonObject(unsafeUnretained: outputRef)
+        return unsafe PythonObject(fromOwned: outputRef)
     }
     public static func / (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> PythonObject {
         let outputRef: UnsafePyObjectRef? = PyNumber_TrueDivide(lhs.pyObject, rhs.pyObject)
@@ -98,7 +98,7 @@ extension PythonObject {
             PythonError.checkTracked()
             return .none
         }
-        return PythonObject(unsafeUnretained: outputRef)
+        return unsafe PythonObject(fromOwned: outputRef)
     }
     public static func % (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> PythonObject {
         let outputRef: UnsafePyObjectRef? = PyNumber_Remainder(lhs.pyObject, rhs.pyObject)
@@ -106,7 +106,7 @@ extension PythonObject {
             PythonError.checkTracked()
             return .none
         }
-        return PythonObject(unsafeUnretained: outputRef)
+        return unsafe PythonObject(fromOwned: outputRef)
     }
 }
 
@@ -118,7 +118,7 @@ extension PythonObject {
             PythonError.checkTracked()
             return .none
         }
-        return PythonObject(unsafeUnretained: outputRef)
+        return unsafe PythonObject(fromOwned: outputRef)
     }
     public static prefix func - (object: borrowing PythonObject) -> PythonObject {
         let outputRef: UnsafePyObjectRef? = PyNumber_Negative(object.pyObject)
@@ -126,7 +126,7 @@ extension PythonObject {
             PythonError.checkTracked()
             return .none
         }
-        return PythonObject(unsafeUnretained: outputRef)
+        return unsafe PythonObject(fromOwned: outputRef)
     }
 }
 
@@ -138,7 +138,7 @@ extension PythonObject {
             PythonError.checkTracked()
             return .none
         }
-        return PythonObject(unsafeUnretained: outputRef)
+        return unsafe PythonObject(fromOwned: outputRef)
     }
     public static func << (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> PythonObject {
         let outputRef: UnsafePyObjectRef? = PyNumber_Lshift(lhs.pyObject, rhs.pyObject)
@@ -146,7 +146,7 @@ extension PythonObject {
             PythonError.checkTracked()
             return .none
         }
-        return PythonObject(unsafeUnretained: outputRef)
+        return unsafe PythonObject(fromOwned: outputRef)
     }
     public static func >> (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> PythonObject {
         let outputRef: UnsafePyObjectRef? = PyNumber_Rshift(lhs.pyObject, rhs.pyObject)
@@ -154,7 +154,7 @@ extension PythonObject {
             PythonError.checkTracked()
             return .none
         }
-        return PythonObject(unsafeUnretained: outputRef)
+        return unsafe PythonObject(fromOwned: outputRef)
     }
     public static func & (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> PythonObject {
         let outputRef: UnsafePyObjectRef? = PyNumber_And(lhs.pyObject, rhs.pyObject)
@@ -162,7 +162,7 @@ extension PythonObject {
             PythonError.checkTracked()
             return .none
         }
-        return PythonObject(unsafeUnretained: outputRef)
+        return unsafe PythonObject(fromOwned: outputRef)
     }
     public static func | (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> PythonObject {
         let outputRef: UnsafePyObjectRef? = PyNumber_Or(lhs.pyObject, rhs.pyObject)
@@ -170,7 +170,7 @@ extension PythonObject {
             PythonError.checkTracked()
             return .none
         }
-        return PythonObject(unsafeUnretained: outputRef)
+        return unsafe PythonObject(fromOwned: outputRef)
     }
     public static func ^ (lhs: borrowing PythonObject, rhs: borrowing PythonObject) -> PythonObject {
         let outputRef: UnsafePyObjectRef? = PyNumber_Xor(lhs.pyObject, rhs.pyObject)
@@ -178,7 +178,7 @@ extension PythonObject {
             PythonError.checkTracked()
             return .none
         }
-        return PythonObject(unsafeUnretained: outputRef)
+        return unsafe PythonObject(fromOwned: outputRef)
     }
 }
 
@@ -190,7 +190,7 @@ extension PythonObject {
             PythonError.checkTracked()
             return
         }
-        lhs = PythonObject(unsafeUnretained: outputRef)
+        lhs = unsafe PythonObject(fromOwned: outputRef)
     }
     public static func -= (lhs: inout PythonObject, rhs: borrowing PythonObject) {
         let outputRef: UnsafePyObjectRef? = PyNumber_InPlaceSubtract(lhs.pyObject, rhs.pyObject)
@@ -198,7 +198,7 @@ extension PythonObject {
             PythonError.checkTracked()
             return
         }
-        lhs = PythonObject(unsafeUnretained: outputRef)
+        lhs = unsafe PythonObject(fromOwned: outputRef)
     }
     public static func *= (lhs: inout PythonObject, rhs: borrowing PythonObject) {
         let outputRef: UnsafePyObjectRef? = PyNumber_InPlaceMultiply(lhs.pyObject, rhs.pyObject)
@@ -206,7 +206,7 @@ extension PythonObject {
             PythonError.checkTracked()
             return
         }
-        lhs = PythonObject(unsafeUnretained: outputRef)
+        lhs = unsafe PythonObject(fromOwned: outputRef)
     }
     public static func /= (lhs: inout PythonObject, rhs: borrowing PythonObject) {
         let outputRef: UnsafePyObjectRef? = PyNumber_InPlaceTrueDivide(lhs.pyObject, rhs.pyObject)
@@ -214,7 +214,7 @@ extension PythonObject {
             PythonError.checkTracked()
             return
         }
-        lhs = PythonObject(unsafeUnretained: outputRef)
+        lhs = unsafe PythonObject(fromOwned: outputRef)
     }
 }
 
@@ -237,7 +237,7 @@ extension PythonObject {
             try PythonError.check()
             throw PythonError.unknown
         }
-        return PythonObject(unsafeUnretained: ref)
+        return unsafe PythonObject(fromOwned: ref)
     }
     public func asTuple() throws(PythonError) -> PythonObject {
         let ref: UnsafePyObjectRef? = PySequence_Tuple(pyObject)
@@ -245,7 +245,7 @@ extension PythonObject {
             try PythonError.check()
             throw PythonError.unknown
         }
-        return PythonObject(unsafeUnretained: ref)
+        return unsafe PythonObject(fromOwned: ref)
     }
 
     public func contains(_ item: borrowing PythonObject) throws(PythonError) -> Bool {
@@ -282,7 +282,7 @@ extension PythonObject {
                 PythonError.checkTracked()
                 return .none
             }
-            return PythonObject(unsafeUnretained: itemRef)
+            return unsafe PythonObject(fromOwned: itemRef)
         }
     }
     subscript(_ index: Int) -> PythonObject? {
@@ -319,7 +319,7 @@ extension PythonObject {
                 PythonError.checkTracked()
                 return .none
             }
-            return PythonObject(unsafeUnretained: itemRef)
+            return unsafe PythonObject(fromOwned: itemRef)
         }
         set(newValue) {
             let ret: CInt = PySequence_SetSlice(pyObject, sliceRange.lowerBound, sliceRange.upperBound, newValue.pyObject)
@@ -417,7 +417,7 @@ extension PythonObject {
             try PythonError.check()
             throw PythonError.unknown
         }
-        return PythonObject(unsafeUnretained: ref)
+        return unsafe PythonObject(fromOwned: ref)
     }
     public func values() throws(PythonError) -> PythonObject {
         let ref: UnsafePyObjectRef? = PyMapping_Values(pyObject)
@@ -425,7 +425,7 @@ extension PythonObject {
             try PythonError.check()
             throw PythonError.unknown
         }
-        return PythonObject(unsafeUnretained: ref)
+        return unsafe PythonObject(fromOwned: ref)
     }
     public func items() throws(PythonError) -> PythonObject {
         let ref: UnsafePyObjectRef? = PyMapping_Items(pyObject)
@@ -433,7 +433,7 @@ extension PythonObject {
             try PythonError.check()
             throw PythonError.unknown
         }
-        return PythonObject(unsafeUnretained: ref)
+        return unsafe PythonObject(fromOwned: ref)
     }
 
     public subscript(_ key: String) -> PythonObject? {
@@ -449,23 +449,23 @@ extension PythonObject {
         get {
             var resultRef: UnsafePyObjectRef? = nil
             let ret: CInt = key.withCString { keyCString in
-                PyMapping_GetOptionalItemString(pyObject, keyCString, &resultRef)
+                PyMapping_GetOptionalItemString(_unsafePyObjectRef, keyCString, &resultRef)
             }
             guard ret >= 0 else {
                 PythonError.checkTracked()
                 return PythonObject.none
             }
-            return PythonObject(unsafeUnretained: resultRef)
+            return unsafe PythonObject(fromOwned: resultRef)
         }
         set(newValue) {
             let ret: CInt
             if let newValue {
                 ret = key.withCString { keyCString in
-                    PyMapping_SetItemString(pyObject, keyCString, newValue.pyObject)
+                    PyMapping_SetItemString(_unsafePyObjectRef, keyCString, newValue._unsafePyObjectRef)
                 }
             } else {
                 ret = key.withCString { keyCString in
-                    PyObject_DelItemString(pyObject, keyCString)
+                    PyObject_DelItemString(_unsafePyObjectRef, keyCString)
                 }
             }
             guard ret == 0 else {

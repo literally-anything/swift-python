@@ -18,7 +18,7 @@ extension StringProtocol {
             throw PythonError.unknown
         }
 
-        return PythonObject(unsafeUnretained: objectRef)
+        return PythonObject(fromOwned: objectRef)
     }
 }
 
@@ -59,6 +59,6 @@ extension StaticString {
             try PythonError.check()
             throw PythonError.unknown
         }
-        return PythonObject(unsafeUnretained: objectRef)
+        return PythonObject(fromOwned: objectRef)
     }
 }
