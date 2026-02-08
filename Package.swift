@@ -132,11 +132,6 @@ if let pythonInfo = findPythonInfo() {
     cxxArgs.append(.unsafeFlags(pythonInfo.cFlags))
     linkerArgs.append(.unsafeFlags(pythonInfo.linkerFlags))
 
-    let oldExtSuffix = try? String(contentsOfFile: ".extension_name", encoding: .utf8)
-    if oldExtSuffix == nil || pythonInfo.extSuffix != oldExtSuffix {
-        try pythonInfo.extSuffix.write(toFile: ".extension_name", atomically: true, encoding: .utf8)
-    }
-
     linkerArgs.append(.linkedLibrary("python\(pythonInfo.versionStr)"))
 } else {
     fatalError("Failed to find a python install. `python-config` must be in PATH.")
