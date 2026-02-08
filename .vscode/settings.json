@@ -1,5 +1,12 @@
 {
     "swift.packageArguments": [
         "--disable-sandbox"
-    ]
+    ],
+    "psi-header.variables": [
+        ["projectCreationYear", "2025"],
+        ["projectname", "SwiftPython"]
+    ],
+    "psi-header.config": {
+        "license": "MIT"
+    },
 }

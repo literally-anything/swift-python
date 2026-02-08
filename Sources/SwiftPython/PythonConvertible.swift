@@ -1,9 +1,9 @@
-/**
+/*
  * PythonConvertible.swift
  * SwiftPython
- * 
- * Created by Hunter Baker on 12/26/2025
- * Copyright (C) 2025-2025, by Hunter Baker hunter@literallyanything.net
+ * -----
+ * Copyright (c) 2025 - 2026 Hunter Baker hunter@literallyanything.net
+ * Licensed under the MIT License
  */
 
 /// A type that can be converted to a python object 

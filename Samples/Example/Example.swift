@@ -1,9 +1,9 @@
-/**
+/*
  * Example.swift
- * Example
- * 
- * Created by Hunter Baker on 12/21/2025
- * Copyright (C) 2025-2025, by Hunter Baker hunter@literallyanything.net
+ * SwiftPython
+ * -----
+ * Copyright (c) 2025 - 2026 Hunter Baker hunter@literallyanything.net
+ * Licensed under the MIT License
  */
 
 public func hello(text: String) -> Int {
