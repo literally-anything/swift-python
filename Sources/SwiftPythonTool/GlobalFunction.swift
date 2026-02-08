@@ -105,7 +105,7 @@ private func buildGlobalFunctionBody(
                         specifier: .let,
                         name: argumentParamVar,
                         type: "SwiftPython.PythonObject" as TypeSyntax,
-                        value: "SwiftPython.PythonObject(unsafeUnmanaged: \(argsParam)!)" as ExprSyntax
+                        value: "SwiftPython.PythonObject(borrowing: \(argsParam)!)" as ExprSyntax
                     )
                 )))
             )

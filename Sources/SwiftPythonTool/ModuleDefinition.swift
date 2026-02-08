@@ -18,18 +18,30 @@ func generateModuleDefinition(
     var contents: [CodeBlockItemSyntax] = []
 
     let moduleDefStorageVar: TokenSyntax = .identifier("_\(pythonModuleName)_moduleDefinition")
+    let moduleDefInitializedVar: TokenSyntax = .identifier("_\(pythonModuleName)_moduleDefinition_initialized")
     let entrypointFunc: TokenSyntax = .identifier("_PyInit_\(pythonModuleName)")
     let execFunc: TokenSyntax = .identifier("_\(pythonModuleName)_exec")
 
     // The storage for the static module definition
     let moduleDefStorageDecl = VariableDeclSyntax(
         attributes: [.attribute(noDocsAttribute)],
-        specifier: .let,
+        modifiers: [.init(name: "nonisolated", detail: .init(detail: "unsafe"))],
+        specifier: .var,
         name: moduleDefStorageVar,
-        type: "Synchronization.Mutex<\(PythonTypes.PyModuleDefPtr.type)>" as TypeSyntax,
-        value: "Synchronization.Mutex(nil)" as ExprSyntax
+        type: PythonTypes.PyModuleDef.type,
+        value: "\(PythonTypes.PyModuleDef.type)()" as ExprSyntax
     )
     contents.append(CodeBlockItemSyntax(item: .decl(.init(moduleDefStorageDecl))))
+
+    // The Mutex that holds whether the module definition has been initialized
+    let moduleDefInitializedDecl = VariableDeclSyntax(
+        attributes: [.attribute(noDocsAttribute)],
+        specifier: .let,
+        name: moduleDefInitializedVar,
+        type: "Synchronization.Mutex<Bool>" as TypeSyntax,
+        value: "Synchronization.Mutex(false)" as ExprSyntax
+    )
+    contents.append(CodeBlockItemSyntax(item: .decl(.init(moduleDefInitializedDecl))))
 
     // The entrypoint that CPython calls when importing the module.
     // This sets up metadata, global functions, and slots.
@@ -47,38 +59,38 @@ func generateModuleDefinition(
         )
     ) {
         let modulePtrVar: TokenSyntax = .identifier("pyModulePtr")
-        let moduleDefVar: TokenSyntax = .identifier("pyModuleDef")
-        // Wait for the mutex so that the definition only gets initialized once.
+        let moduleInitializedVar: TokenSyntax = .identifier("initialized")
+        // Wait for the initialized mutex so that the definition only gets initialized once.
         // It is normally statically allocated in C, so this is safe with the GIL off and with subinterpreters.
         VariableDeclSyntax(
             specifier: .let,
             name: modulePtrVar,
             type: PythonTypes.PyModuleDefPtr.type,
             value: FunctionCallExprSyntax(
-                callee: "\(moduleDefStorageVar).withLock" as ExprSyntax
+                callee: "\(moduleDefInitializedVar).withLock" as ExprSyntax
             ) {
                 LabeledExprSyntax(
                     expression: ClosureExprSyntax(
                         signature: ClosureSignatureSyntax(
                             parameterClause: .init {
-                                ClosureParameterSyntax(firstName: moduleDefVar)
+                                ClosureParameterSyntax(firstName: moduleInitializedVar)
                             },
                             returnClause: ReturnClauseSyntax(type: PythonTypes.PyModuleDefPtr.type)
                         )
                     ) {
-                        // When the module definition is nil, make it first
+                        // When the module has not been initialized, make it first
                         IfExprSyntax(
                             conditions: .init {
-                                ConditionElementSyntax(condition: .expression("\(moduleDefVar) == nil"))
+                                ConditionElementSyntax(condition: .expression("!\(moduleInitializedVar)"))
                             },
                             body: buildModuleDefinition(
                                 pyModuleName: pythonModuleName,
-                                moduleDefVar: moduleDefVar,
+                                moduleDefVar: moduleDefStorageVar,
                                 execFunc: execFunc,
                                 globalFunctions: globalFunctions
                             )
                         )
-                        ReturnStmtSyntax(expression: "\(moduleDefVar)" as ExprSyntax)
+                        ReturnStmtSyntax(expression: "UnsafeMutablePointer(&\(moduleDefStorageVar))" as ExprSyntax)
                     }
                 )
             }
@@ -133,16 +145,15 @@ private func buildModuleDefinition(
     )
     codeBlock.statements.append(CodeBlockItemSyntax(item: .decl(.init(moduleNameStorageDecl))))
 
+    // ToDo: Stop using heap allocations for these
     let methodsBufferVar: TokenSyntax = buildMethodsBuffer(codeBlock: &codeBlock, pyModuleName: pyModuleName, globalFunctions: globalFunctions)
     let slotsBufferVar: TokenSyntax = buildSlotsBuffer(codeBlock: &codeBlock, pyModuleName: pyModuleName, execFunc: execFunc, enaleSubinterpreters: true, isThreadSafe: true)
 
-    // Initialize inline to the stack
-    let moduleDefInlineVar: TokenSyntax = .identifier("pyModuleDefInline")
-    let moduleDefInlineDecl = VariableDeclSyntax(
-        specifier: .let,
-        name: moduleDefInlineVar,
-        type: PythonTypes.PyModuleDef.type,
-        value: FunctionCallExprSyntax(
+    // Initialize the static PyModuleDef
+    let moduleDefAssignmentExpr = SequenceExprSyntax {
+        DeclReferenceExprSyntax(baseName: moduleDefVar)
+        AssignmentExprSyntax()
+        FunctionCallExprSyntax(
             callee: TypeExprSyntax(type: PythonTypes.PyModuleDef.type)
         ) {
             LabeledExprSyntax(label: "m_base", expression: PythonTypes.PyModuleDef_HEAD_INIT)
@@ -155,37 +166,8 @@ private func buildModuleDefinition(
             LabeledExprSyntax(label: "m_clear", expression: NilLiteralExprSyntax())
             LabeledExprSyntax(label: "m_free", expression: NilLiteralExprSyntax())
         }
-    )
-    codeBlock.statements.append(CodeBlockItemSyntax(item: .decl(.init(moduleDefInlineDecl))))
-
-    // Allocate a heap block for the module definition to live and move it there
-    let moduleDefAllocVar: TokenSyntax = .identifier("pyModuleDefAlloc")
-    let moduleDefAllocType: TypeSyntax = "UnsafeMutablePointer<\(PythonTypes.PyModuleDef.type)>"
-    let moduleDefAllocDecl = VariableDeclSyntax(
-        specifier: .let,
-        name: moduleDefAllocVar,
-        type: moduleDefAllocType,
-        value: FunctionCallExprSyntax(
-            callee: "\(moduleDefAllocType).allocate" as ExprSyntax
-        ) {
-            LabeledExprSyntax(label: "capacity", expression: 1 as IntegerLiteralExprSyntax)
-        }
-    )
-    codeBlock.statements.append(CodeBlockItemSyntax(item: .decl(.init(moduleDefAllocDecl))))
-    let moduleDefAllocInitExpr = FunctionCallExprSyntax(
-        callee: "\(moduleDefAllocVar).initialize" as ExprSyntax
-    ) {
-        LabeledExprSyntax(label: "to", expression: DeclReferenceExprSyntax(baseName: moduleDefInlineVar))
     }
-    codeBlock.statements.append(CodeBlockItemSyntax(item: .expr(.init(moduleDefAllocInitExpr))))
-
-    // Asign the module definition pointer to the mutex storage
-    let moduleDefMutexAssignmentExpr = SequenceExprSyntax {
-        DeclReferenceExprSyntax(baseName: moduleDefVar)
-        AssignmentExprSyntax()
-        DeclReferenceExprSyntax(baseName: moduleDefAllocVar)
-    }
-    codeBlock.statements.append(CodeBlockItemSyntax(item: .expr(.init(moduleDefMutexAssignmentExpr))))
+    codeBlock.statements.append(CodeBlockItemSyntax(item: .expr(.init(moduleDefAssignmentExpr))))
 
     return codeBlock
 }

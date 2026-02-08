@@ -55,6 +55,7 @@ extension FunctionSignatureSyntax {
 extension VariableDeclSyntax {
     init(
         attributes: AttributeListSyntax = [],
+        modifiers: DeclModifierListSyntax = [],
         specifier: Keyword,
         name: TokenSyntax,
         type: TypeSyntaxProtocol? = nil,
@@ -67,7 +68,7 @@ extension VariableDeclSyntax {
                 initializer: InitializerClauseSyntax(value: value)
             )
         }
-        self.init(attributes: attributes, bindingSpecifier: .keyword(specifier), bindings: bindings)
+        self.init(attributes: attributes, modifiers: modifiers, bindingSpecifier: .keyword(specifier), bindings: bindings)
     }
 }
 
