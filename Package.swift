@@ -120,7 +120,7 @@ let swiftArgs: [SwiftSetting] = [
     .interoperabilityMode(.Cxx)
 ]
 var cArgs: [CSetting] = [
-    .unsafeFlags(["-fapinotes-modules"])
+    .unsafeFlags(["-Wno-module-import-in-extern-c", "-fapinotes-modules"])
 ]
 var cxxArgs: [CXXSetting] = [
     .unsafeFlags(["-Wno-module-import-in-extern-c", "-fapinotes-modules"])
